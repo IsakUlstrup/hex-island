@@ -8,6 +8,16 @@ import Html exposing (Html, main_)
 import Html.Attributes
 import Svg exposing (Svg)
 import Svg.Attributes
+import Svg.Events
+
+
+
+-- ENTITY
+
+
+type alias Entity =
+    { position : Point
+    }
 
 
 
@@ -24,7 +34,9 @@ type Tile
 
 
 type alias Model =
-    { tiles : Dict Point Tile }
+    { tiles : Dict Point Tile
+    , entities : List Entity
+    }
 
 
 init : () -> ( Model, Cmd Msg )
@@ -34,8 +46,11 @@ init _ =
             [ ( ( 0, 0 ), Grass )
             , ( ( 1, -1 ), Water )
             , ( ( 0, 1 ), Water )
+            , ( ( 1, 0 ), Water )
+            , ( ( 2, -2 ), Water )
             ]
         )
+        [ Entity ( 0, 0 ) ]
     , Cmd.none
     )
 
@@ -45,23 +60,40 @@ init _ =
 
 
 type Msg
-    = NoOp
+    = ClickedHex Point
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
+        ClickedHex pos ->
+            ( { model | entities = model.entities |> List.map (\e -> { e | position = pos }) }, Cmd.none )
 
 
 
 -- VIEW
 
 
-viewTile : ( Point, Tile ) -> Svg msg
+viewTile : ( Point, Tile ) -> Svg Msg
 viewTile ( position, _ ) =
-    Render.viewHex [ Render.hexTransform position ]
+    Render.viewHex
+        [ Render.hexTransform position
+        , Svg.Events.onClick (ClickedHex position)
+        , Svg.Attributes.class "tile"
+        ]
+
+
+viewEntity : Entity -> Svg msg
+viewEntity entity =
+    Svg.circle
+        [ Svg.Attributes.r "50"
+        , Svg.Attributes.cx "0"
+        , Svg.Attributes.cy "0"
+        , Svg.Attributes.fill "#262626"
+        , Render.hexTransform entity.position
+        , Svg.Attributes.class "entity"
+        ]
+        []
 
 
 view : Model -> Html Msg
@@ -75,6 +107,10 @@ view model =
                 (model.tiles
                     |> Dict.toList
                     |> List.map viewTile
+                )
+            , Svg.g []
+                (model.entities
+                    |> List.map viewEntity
                 )
             ]
         ]

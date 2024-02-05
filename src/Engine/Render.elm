@@ -75,10 +75,10 @@ hexTransform position =
         ( x, y ) =
             pointToPixel position
     in
-    Svg.Attributes.transform
-        ("translate("
+    Svg.Attributes.style
+        ("transform: translate("
             ++ String.fromFloat x
-            ++ ", "
+            ++ "px, "
             ++ String.fromFloat y
-            ++ ")"
+            ++ "px)"
         )
