@@ -47,7 +47,7 @@ tileToString tile =
 type alias Model =
     { tiles : Dict Point Tile
     , entities : List Entity
-    , cameraPosition : ( Float, Float )
+    , cameraPosition : ( Int, Int )
     }
 
 
@@ -108,7 +108,7 @@ viewTiles tiles =
         _ =
             Debug.log "tiles" ()
     in
-    Svg.g []
+    Svg.g [ Svg.Attributes.class "tiles" ]
         (tiles
             |> Dict.toList
             |> List.map viewTile
@@ -128,6 +128,21 @@ viewEntity entity =
         []
 
 
+gooFilter : Svg msg
+gooFilter =
+    Svg.filter [ Svg.Attributes.id "goo-filter" ]
+        [ Svg.feGaussianBlur
+            [ Svg.Attributes.in_ "SourceGraphic"
+            , Svg.Attributes.stdDeviation "10"
+            ]
+            []
+        , Svg.feColorMatrix
+            [ Svg.Attributes.values "1 0 0 0 0      0 1 0 0 0       0 0 1 0 0       0 0 0 20 -10"
+            ]
+            []
+        ]
+
+
 view : Model -> Html Msg
 view model =
     main_ [ Html.Attributes.id "app" ]
@@ -136,7 +151,8 @@ view model =
             , Svg.Attributes.preserveAspectRatio "xMidYMid slice"
             , Svg.Attributes.class "game-svg"
             ]
-            [ Render.camera model.cameraPosition
+            [ Svg.defs [] [ gooFilter ]
+            , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
                 [ Svg.Lazy.lazy viewTiles model.tiles
                 , Svg.g []

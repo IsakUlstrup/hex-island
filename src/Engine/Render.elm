@@ -22,10 +22,10 @@ hexSize =
 
 {-| Get the center of a given point in screen coordinates
 -}
-pointToPixel : Point -> ( Float, Float )
+pointToPixel : Point -> ( Int, Int )
 pointToPixel ( q, r ) =
-    ( hexSize * (3 / 2 * toFloat q)
-    , hexSize * (sqrt 3 / 2 * toFloat q + sqrt 3 * toFloat r)
+    ( hexSize * (3 / 2 * toFloat q) |> round
+    , hexSize * (sqrt 3 / 2 * toFloat q + sqrt 3 * toFloat r) |> round
     )
 
 
@@ -36,7 +36,7 @@ cornerListToPoints points =
     let
         tupleToString : ( Float, Float ) -> String
         tupleToString ( x, y ) =
-            String.fromFloat x ++ "," ++ String.fromFloat y
+            String.fromInt (round x) ++ "," ++ String.fromInt (round y)
     in
     points
         |> List.map tupleToString
@@ -79,28 +79,28 @@ hexTransform position =
     in
     Svg.Attributes.style
         ("transform: translate("
-            ++ String.fromFloat x
+            ++ String.fromInt x
             ++ "px, "
-            ++ String.fromFloat y
+            ++ String.fromInt y
             ++ "px)"
         )
 
 
 {-| Camera transform
 -}
-cameraTransform : ( Float, Float ) -> Attribute msg
+cameraTransform : ( Int, Int ) -> Attribute msg
 cameraTransform ( x, y ) =
     Svg.Attributes.style
         ("transform: translate("
-            ++ String.fromFloat -x
+            ++ String.fromInt -x
             ++ "px, "
-            ++ String.fromFloat -y
+            ++ String.fromInt -y
             ++ "px)"
         )
 
 
 {-| Camera element
 -}
-camera : ( Float, Float ) -> List (Attribute msg) -> List (Svg msg) -> Svg msg
+camera : ( Int, Int ) -> List (Attribute msg) -> List (Svg msg) -> Svg msg
 camera position attrs children =
     Svg.g (cameraTransform position :: attrs) children
