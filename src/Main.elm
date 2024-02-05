@@ -9,6 +9,7 @@ import Html.Attributes
 import Svg exposing (Svg)
 import Svg.Attributes
 import Svg.Events
+import Svg.Lazy
 
 
 
@@ -101,6 +102,19 @@ viewTile ( position, tile ) =
         ]
 
 
+viewTiles : Dict Point Tile -> Svg Msg
+viewTiles tiles =
+    let
+        _ =
+            Debug.log "tiles" ()
+    in
+    Svg.g []
+        (tiles
+            |> Dict.toList
+            |> List.map viewTile
+        )
+
+
 viewEntity : Entity -> Svg msg
 viewEntity entity =
     Svg.circle
@@ -124,11 +138,7 @@ view model =
             ]
             [ Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
-                [ Svg.g []
-                    (model.tiles
-                        |> Dict.toList
-                        |> List.map viewTile
-                    )
+                [ Svg.Lazy.lazy viewTiles model.tiles
                 , Svg.g []
                     (model.entities
                         |> List.map viewEntity
