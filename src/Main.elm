@@ -60,6 +60,8 @@ init _ =
             , ( ( 0, 1 ), Grass )
             , ( ( 1, 0 ), Water )
             , ( ( 2, -2 ), Water )
+            , ( ( 2, -1 ), Water )
+            , ( ( -1, 0 ), Grass )
             ]
         )
         [ Entity ( 0, 0 ) ]
@@ -104,10 +106,6 @@ viewTile ( position, tile ) =
 
 viewTiles : Dict Point Tile -> Svg Msg
 viewTiles tiles =
-    let
-        _ =
-            Debug.log "tiles" ()
-    in
     Svg.g [ Svg.Attributes.class "tiles" ]
         (tiles
             |> Dict.toList
