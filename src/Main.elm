@@ -29,6 +29,16 @@ type Tile
     | Grass
 
 
+tileToString : Tile -> String
+tileToString tile =
+    case tile of
+        Water ->
+            "water"
+
+        Grass ->
+            "grass"
+
+
 
 -- MODEL
 
@@ -45,8 +55,8 @@ init _ =
     ( Model
         (Dict.fromList
             [ ( ( 0, 0 ), Grass )
-            , ( ( 1, -1 ), Water )
-            , ( ( 0, 1 ), Water )
+            , ( ( 1, -1 ), Grass )
+            , ( ( 0, 1 ), Grass )
             , ( ( 1, 0 ), Water )
             , ( ( 2, -2 ), Water )
             ]
@@ -82,11 +92,12 @@ update msg model =
 
 
 viewTile : ( Point, Tile ) -> Svg Msg
-viewTile ( position, _ ) =
+viewTile ( position, tile ) =
     Render.viewHex
         [ Render.hexTransform position
         , Svg.Events.onClick (ClickedHex position)
         , Svg.Attributes.class "tile"
+        , Svg.Attributes.class (tileToString tile)
         ]
 
 
