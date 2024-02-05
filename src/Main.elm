@@ -101,6 +101,7 @@ view model =
     main_ [ Html.Attributes.id "app" ]
         [ Svg.svg
             [ Svg.Attributes.viewBox "-1000 -1000 2000 2000"
+            , Svg.Attributes.preserveAspectRatio "xMidYMid slice"
             , Svg.Attributes.class "game-svg"
             ]
             [ Svg.g []
