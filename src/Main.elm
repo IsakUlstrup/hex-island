@@ -36,6 +36,7 @@ type Tile
 type alias Model =
     { tiles : Dict Point Tile
     , entities : List Entity
+    , cameraPosition : ( Float, Float )
     }
 
 
@@ -51,6 +52,7 @@ init _ =
             ]
         )
         [ Entity ( 0, 0 ) ]
+        ( 0, 0 )
     , Cmd.none
     )
 
@@ -67,7 +69,12 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ClickedHex pos ->
-            ( { model | entities = model.entities |> List.map (\e -> { e | position = pos }) }, Cmd.none )
+            ( { model
+                | entities = model.entities |> List.map (\e -> { e | position = pos })
+                , cameraPosition = Render.pointToPixel pos
+              }
+            , Cmd.none
+            )
 
 
 
@@ -104,15 +111,18 @@ view model =
             , Svg.Attributes.preserveAspectRatio "xMidYMid slice"
             , Svg.Attributes.class "game-svg"
             ]
-            [ Svg.g []
-                (model.tiles
-                    |> Dict.toList
-                    |> List.map viewTile
-                )
-            , Svg.g []
-                (model.entities
-                    |> List.map viewEntity
-                )
+            [ Render.camera model.cameraPosition
+                [ Svg.Attributes.class "camera" ]
+                [ Svg.g []
+                    (model.tiles
+                        |> Dict.toList
+                        |> List.map viewTile
+                    )
+                , Svg.g []
+                    (model.entities
+                        |> List.map viewEntity
+                    )
+                ]
             ]
         ]
 

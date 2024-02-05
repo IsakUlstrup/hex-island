@@ -1,5 +1,7 @@
 module Engine.Render exposing
-    ( hexTransform
+    ( camera
+    , hexTransform
+    , pointToPixel
     , viewHex
     )
 
@@ -82,3 +84,23 @@ hexTransform position =
             ++ String.fromFloat y
             ++ "px)"
         )
+
+
+{-| Camera transform
+-}
+cameraTransform : ( Float, Float ) -> Attribute msg
+cameraTransform ( x, y ) =
+    Svg.Attributes.style
+        ("transform: translate("
+            ++ String.fromFloat -x
+            ++ "px, "
+            ++ String.fromFloat -y
+            ++ "px)"
+        )
+
+
+{-| Camera element
+-}
+camera : ( Float, Float ) -> List (Attribute msg) -> List (Svg msg) -> Svg msg
+camera position attrs children =
+    Svg.g (cameraTransform position :: attrs) children
