@@ -195,11 +195,6 @@ view model =
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
                 [ Svg.Lazy.lazy3 viewTiles model.hoverTile model.clickedTile model.tiles
-
-                -- , Svg.g []
-                --     (model.entities
-                --         |> List.map viewEntity
-                --     )
                 , Svg.g [] (Maybe.map2 (viewPath model.tiles) model.clickedTile model.hoverTile |> Maybe.withDefault [])
                 ]
             ]
