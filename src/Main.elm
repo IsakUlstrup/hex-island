@@ -1,4 +1,4 @@
-module Main exposing (Entity, Model, Msg, Tile, main)
+module Main exposing (Model, Msg, Tile, main)
 
 import Browser
 import Dict exposing (Dict)
@@ -11,15 +11,6 @@ import Svg exposing (Svg)
 import Svg.Attributes
 import Svg.Events
 import Svg.Lazy
-
-
-
--- ENTITY
-
-
-type alias Entity =
-    { position : Point
-    }
 
 
 
@@ -60,7 +51,6 @@ canMove tiles tile =
 
 type alias Model =
     { tiles : Dict Point Tile
-    , entities : List Entity
     , cameraPosition : ( Int, Int )
     , clickedTile : Maybe Point
     , hoverTile : Maybe Point
@@ -80,7 +70,6 @@ init _ =
             , ( ( -1, 0 ), Grass )
             ]
         )
-        [ Entity ( 0, 0 ) ]
         ( 0, 0 )
         Nothing
         Nothing
@@ -160,20 +149,6 @@ viewTiles hover selected tiles =
             |> Dict.toList
             |> List.map (viewTile hover selected)
         )
-
-
-
--- viewEntity : Entity -> Svg msg
--- viewEntity entity =
---     Svg.circle
---         [ Svg.Attributes.r "50"
---         , Svg.Attributes.cx "0"
---         , Svg.Attributes.cy "0"
---         , Svg.Attributes.fill "#262626"
---         , Render.hexTransform entity.position
---         , Svg.Attributes.class "entity"
---         ]
---         []
 
 
 viewPath : Dict Point Tile -> Point -> Point -> List (Svg msg)
