@@ -1,4 +1,4 @@
-module Main exposing (Model, Msg, Tile, main)
+module Main exposing (Entity, Model, Msg, Tile, main)
 
 import Browser
 import Dict exposing (Dict)
