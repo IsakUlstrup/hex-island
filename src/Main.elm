@@ -48,6 +48,8 @@ type alias Model =
     { tiles : Dict Point Tile
     , entities : List Entity
     , cameraPosition : ( Int, Int )
+    , clickedTile : Maybe Point
+    , hoverTile : Maybe Point
     }
 
 
@@ -66,6 +68,8 @@ init _ =
         )
         [ Entity ( 0, 0 ) ]
         ( 0, 0 )
+        Nothing
+        Nothing
     , Cmd.none
     )
 
@@ -76,6 +80,7 @@ init _ =
 
 type Msg
     = ClickedHex Point
+    | HoverHex Point
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -83,8 +88,14 @@ update msg model =
     case msg of
         ClickedHex pos ->
             ( { model
-                | entities = model.entities |> List.map (\e -> { e | position = pos })
-                , cameraPosition = Render.pointToPixel pos
+                | clickedTile = Just pos
+              }
+            , Cmd.none
+            )
+
+        HoverHex pos ->
+            ( { model
+                | hoverTile = Just pos
               }
             , Cmd.none
             )
@@ -94,22 +105,46 @@ update msg model =
 -- VIEW
 
 
-viewTile : ( Point, Tile ) -> Svg Msg
-viewTile ( position, tile ) =
+svgClassList : List ( String, Bool ) -> Svg.Attribute msg
+svgClassList classes =
+    classes
+        |> List.filter Tuple.second
+        |> List.map Tuple.first
+        |> String.join " "
+        |> Svg.Attributes.class
+
+
+viewTile : Maybe Point -> Maybe Point -> ( Point, Tile ) -> Svg Msg
+viewTile hover selected ( position, tile ) =
+    let
+        maybeEquals : Maybe Point -> Bool
+        maybeEquals m =
+            case m of
+                Just p ->
+                    p == position
+
+                Nothing ->
+                    False
+    in
     Render.viewHex
         [ Render.hexTransform position
         , Svg.Events.onClick (ClickedHex position)
+        , Svg.Events.onMouseOver (HoverHex position)
         , Svg.Attributes.class "tile"
         , Svg.Attributes.class (tileToString tile)
+        , svgClassList
+            [ ( "hover", maybeEquals hover )
+            , ( "selected", maybeEquals selected )
+            ]
         ]
 
 
-viewTiles : Dict Point Tile -> Svg Msg
-viewTiles tiles =
+viewTiles : Maybe Point -> Maybe Point -> Dict Point Tile -> Svg Msg
+viewTiles hover selected tiles =
     Svg.g [ Svg.Attributes.class "tiles" ]
         (tiles
             |> Dict.toList
-            |> List.map viewTile
+            |> List.map (viewTile hover selected)
         )
 
 
@@ -152,7 +187,7 @@ view model =
             [ Svg.defs [] [ gooFilter ]
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
-                [ Svg.Lazy.lazy viewTiles model.tiles
+                [ Svg.Lazy.lazy3 viewTiles model.hoverTile model.clickedTile model.tiles
                 , Svg.g []
                     (model.entities
                         |> List.map viewEntity
