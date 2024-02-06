@@ -30,6 +30,16 @@ point =
                     Point.add ( 1, -1 ) ( -1, 1 )
                         |> Expect.equal ( 0, 0 )
             ]
+        , describe "Point.distance"
+            [ test "Distance between (0, 0) and (2, -2)" <|
+                \_ ->
+                    Point.distance ( 0, 0 ) ( 2, -2 )
+                        |> Expect.equal 2
+            , test "Distance between (0, 0) and (0, 0)" <|
+                \_ ->
+                    Point.distance ( 0, 0 ) ( 0, 0 )
+                        |> Expect.equal 0
+            ]
         , describe "Point.neighbours"
             [ test "Get neighbours of (0, 0)" <|
                 \_ ->

@@ -2,6 +2,7 @@ module Main exposing (Entity, Model, Msg, Tile, main)
 
 import Browser
 import Dict exposing (Dict)
+import Engine.Path
 import Engine.Point exposing (Point)
 import Engine.Render as Render
 import Html exposing (Html, main_)
@@ -38,6 +39,19 @@ tileToString tile =
 
         Grass ->
             "grass"
+
+
+canMove : Dict Point Tile -> Point -> Bool
+canMove tiles tile =
+    case Dict.get tile tiles of
+        Just Water ->
+            False
+
+        Just Grass ->
+            True
+
+        Nothing ->
+            False
 
 
 
@@ -148,17 +162,35 @@ viewTiles hover selected tiles =
         )
 
 
-viewEntity : Entity -> Svg msg
-viewEntity entity =
-    Svg.circle
-        [ Svg.Attributes.r "50"
-        , Svg.Attributes.cx "0"
-        , Svg.Attributes.cy "0"
-        , Svg.Attributes.fill "#262626"
-        , Render.hexTransform entity.position
-        , Svg.Attributes.class "entity"
-        ]
-        []
+
+-- viewEntity : Entity -> Svg msg
+-- viewEntity entity =
+--     Svg.circle
+--         [ Svg.Attributes.r "50"
+--         , Svg.Attributes.cx "0"
+--         , Svg.Attributes.cy "0"
+--         , Svg.Attributes.fill "#262626"
+--         , Render.hexTransform entity.position
+--         , Svg.Attributes.class "entity"
+--         ]
+--         []
+
+
+viewPath : Dict Point Tile -> Point -> Point -> List (Svg msg)
+viewPath tiles from to =
+    let
+        viewStep : ( Point, Int ) -> Svg msg
+        viewStep ( pos, cost ) =
+            Svg.text_
+                [ Svg.Attributes.fill "beige"
+                , Render.hexTransform pos
+                , Svg.Attributes.fontSize "2rem"
+                , Svg.Attributes.textAnchor "middle"
+                ]
+                [ Svg.text (String.fromInt cost) ]
+    in
+    Engine.Path.pathfind (canMove tiles) from to
+        |> List.map viewStep
 
 
 gooFilter : Svg msg
@@ -188,10 +220,12 @@ view model =
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
                 [ Svg.Lazy.lazy3 viewTiles model.hoverTile model.clickedTile model.tiles
-                , Svg.g []
-                    (model.entities
-                        |> List.map viewEntity
-                    )
+
+                -- , Svg.g []
+                --     (model.entities
+                --         |> List.map viewEntity
+                --     )
+                , Svg.g [] (Maybe.map2 (viewPath model.tiles) model.clickedTile model.hoverTile |> Maybe.withDefault [])
                 ]
             ]
         ]
