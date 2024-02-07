@@ -87,12 +87,12 @@ addNeighboursToOpen canMove position path =
 -}
 step : (Point -> Bool) -> Path -> Path
 step canMove path =
-    case findCheapest path.open of
-        Nothing ->
-            path
-
-        Just cheapest ->
+    case ( findCheapest path.open, Dict.member path.to path.closed ) of
+        ( Just cheapest, False ) ->
             path
                 |> addNeighboursToOpen canMove (Tuple.first cheapest)
                 |> moveToClosed cheapest
                 |> step canMove
+
+        _ ->
+            path
