@@ -116,6 +116,7 @@ init mapJson url _ =
 
 type Msg
     = HoverHex Point
+    | ClickedHex Point
     | ClickedGhostTile Point
     | ClickedSidebarTile Tile
     | NoOp
@@ -131,6 +132,20 @@ update msg model =
               }
             , Cmd.none
             )
+
+        ClickedHex position ->
+            if model.viewEditor then
+                let
+                    newMap : Dict Point Tile
+                    newMap =
+                        model.tiles |> Dict.insert position model.editorSelectedTile
+                in
+                ( { model | tiles = newMap }
+                , Ports.storeMap (Codec.encodeMap tileEncoder newMap)
+                )
+
+            else
+                ( model, Cmd.none )
 
         ClickedGhostTile position ->
             let
@@ -165,6 +180,7 @@ viewTile ( position, tile ) =
     Render.viewHex
         [ Render.hexTransform position
         , Svg.Events.onMouseOver (HoverHex position)
+        , Svg.Events.onClick (ClickedHex position)
         , Svg.Attributes.class "tile"
         , Svg.Attributes.class (tileToString tile)
         ]
