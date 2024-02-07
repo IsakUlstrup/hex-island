@@ -4,6 +4,10 @@ import Dict exposing (Dict)
 import Engine.Point as Point exposing (Point)
 
 
+
+-- TODO: Add parent point reference
+
+
 type alias Node =
     { g : Int
     , h : Int
@@ -20,6 +24,8 @@ f node =
 type alias Path =
     { open : Dict Point Node
     , closed : Dict Point Node
+    , from : Point
+    , to : Point
     }
 
 
@@ -30,16 +36,16 @@ toList path =
 
 {-| Initialize path with start point in open list
 -}
-init : Point -> Path
-init from =
-    Path (Dict.singleton from (Node 0 0)) Dict.empty
+init : Point -> Point -> Path
+init from to =
+    Path (Dict.singleton from (Node 0 0)) Dict.empty from to
 
 
 {-| Find shortest path between two points using A\*
 -}
 pathfind : (Point -> Bool) -> Point -> Point -> Path
 pathfind canMove from to =
-    init from |> step canMove from to
+    init from to |> step canMove
 
 
 {-| Move node from open to closed
@@ -54,8 +60,8 @@ moveToClosed ( position, node ) path =
 
 {-| Main pathfinding loop
 -}
-step : (Point -> Bool) -> Point -> Point -> Path -> Path
-step canMove from to path =
+step : (Point -> Bool) -> Path -> Path
+step canMove path =
     let
         sortedOpen : List ( Point, Node )
         sortedOpen =
@@ -74,11 +80,11 @@ step canMove from to path =
                 neighbours =
                     Point.neighbours (Tuple.first cheapest)
                         |> List.filter (\p -> (Dict.member p path.closed |> not) && canMove p)
-                        |> List.map (\p -> ( p, Node (Point.distance from p) (Point.distance to p) ))
+                        |> List.map (\p -> ( p, Node (Point.distance path.from p) (Point.distance path.to p) ))
             in
             { path
                 | open =
                     Dict.union path.open (Dict.fromList neighbours)
             }
                 |> moveToClosed cheapest
-                |> step canMove from to
+                |> step canMove
