@@ -9,7 +9,8 @@ import Engine.Point exposing (Point)
 import Engine.Render as Render
 import Html exposing (Html, main_)
 import Html.Attributes
-import Json.Decode
+import Html.Events
+import Json.Decode exposing (Decoder)
 import Json.Encode
 import Ports
 import Svg exposing (Svg)
@@ -60,6 +61,7 @@ type alias Model =
     , cameraPosition : ( Int, Int )
     , hoverTile : Point
     , viewEditor : Bool
+    , editorSelectedTile : Tile
     }
 
 
@@ -80,7 +82,7 @@ init mapJson url _ =
         initMap =
             case mapJson of
                 Just map ->
-                    case Codec.decodeMap (Json.Decode.succeed Grass) map of
+                    case Codec.decodeMap tileDecoder map of
                         Ok validMap ->
                             validMap
 
@@ -103,6 +105,7 @@ init mapJson url _ =
         ( 0, 0 )
         ( 0, 0 )
         (parseUrl url)
+        Grass
     , Cmd.none
     )
 
@@ -114,6 +117,7 @@ init mapJson url _ =
 type Msg
     = HoverHex Point
     | ClickedGhostTile Point
+    | ClickedSidebarTile Tile
     | NoOp
     | ChangedUrl Url
 
@@ -132,17 +136,24 @@ update msg model =
             let
                 newMap : Dict Point Tile
                 newMap =
-                    model.tiles |> Dict.insert position Grass
+                    model.tiles |> Dict.insert position model.editorSelectedTile
             in
             ( { model | tiles = newMap }
-            , Ports.storeMap (Codec.encodeMap (\_ -> Json.Encode.string "grass") newMap)
+            , Ports.storeMap (Codec.encodeMap tileEncoder newMap)
+            )
+
+        ClickedSidebarTile tile ->
+            ( { model | editorSelectedTile = tile }
+            , Cmd.none
             )
 
         NoOp ->
             ( model, Cmd.none )
 
         ChangedUrl url ->
-            ( { model | viewEditor = parseUrl url }, Cmd.none )
+            ( { model | viewEditor = parseUrl url }
+            , Cmd.none
+            )
 
 
 
@@ -252,7 +263,13 @@ viewGame model =
 viewEditor : Model -> Html Msg
 viewEditor model =
     Html.div [ Html.Attributes.class "editor" ]
-        [ Html.section [ Html.Attributes.class "sidebar" ] [ Html.text "editor" ]
+        [ Html.section [ Html.Attributes.class "sidebar" ]
+            [ Html.h1 [] [ Html.text "Tile" ]
+            , Html.ul []
+                [ Html.li [ Html.Events.onClick (ClickedSidebarTile Grass) ] [ Html.text "Grass" ]
+                , Html.li [ Html.Events.onClick (ClickedSidebarTile Water) ] [ Html.text "Water" ]
+                ]
+            ]
         , Render.svg
             [ Svg.Attributes.class "game-svg" ]
             [ Svg.defs [] [ gooFilter ]
@@ -278,6 +295,57 @@ view model =
             ]
         ]
     }
+
+
+
+-- DECODERS
+
+
+grassDecoder : Decoder Tile
+grassDecoder =
+    Json.Decode.string
+        |> Json.Decode.andThen
+            (\s ->
+                case s of
+                    "grass" ->
+                        Json.Decode.succeed Grass
+
+                    _ ->
+                        Json.Decode.fail "invalid tile"
+            )
+
+
+waterDecoder : Decoder Tile
+waterDecoder =
+    Json.Decode.string
+        |> Json.Decode.andThen
+            (\s ->
+                case s of
+                    "water" ->
+                        Json.Decode.succeed Water
+
+                    _ ->
+                        Json.Decode.fail "invalid tile"
+            )
+
+
+tileDecoder : Decoder Tile
+tileDecoder =
+    Json.Decode.oneOf [ grassDecoder, waterDecoder ]
+
+
+
+-- ENCODERS
+
+
+tileEncoder : Tile -> Json.Encode.Value
+tileEncoder tile =
+    case tile of
+        Grass ->
+            Json.Encode.string "grass"
+
+        Water ->
+            Json.Encode.string "water"
 
 
 
