@@ -45,7 +45,11 @@ init from to =
 -}
 pathfind : (Point -> Bool) -> Point -> Point -> Path
 pathfind canMove from to =
-    init from to |> step canMove
+    if canMove to then
+        init from to |> step canMove
+
+    else
+        init from to
 
 
 {-| Move node from open to closed
