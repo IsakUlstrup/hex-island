@@ -38,7 +38,7 @@ toList path =
 -}
 init : Point -> Point -> Path
 init from to =
-    Path (Dict.singleton from (Node 0 0)) Dict.empty from to
+    Path (Dict.singleton from (Node (Point.distance from from) (Point.distance from to))) Dict.empty from to
 
 
 {-| Find shortest path between two points using A\*
