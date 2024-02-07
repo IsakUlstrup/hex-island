@@ -1,11 +1,12 @@
 module Engine.Render exposing
     ( camera
     , hexTransform
+    , square
     , svg
     , viewHex
     )
 
-import Engine.Point exposing (Point)
+import Engine.Point as Point exposing (Point)
 import Html exposing (Html)
 import Svg exposing (Attribute, Svg)
 import Svg.Attributes
@@ -116,3 +117,15 @@ svg attrs children =
             ++ attrs
         )
         children
+
+
+square : List Point
+square =
+    (List.range -3 3
+        |> List.concatMap
+            (\r ->
+                List.range -3 3
+                    |> List.map (\q -> ( q, r ))
+            )
+    )
+        |> List.filter Point.isValid

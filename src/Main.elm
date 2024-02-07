@@ -59,18 +59,18 @@ type alias Model =
     }
 
 
+parseUrl : Url -> Bool
+parseUrl url =
+    case url.path of
+        "/editor" ->
+            True
+
+        _ ->
+            False
+
+
 init : () -> Url -> Key -> ( Model, Cmd Msg )
 init _ url _ =
-    let
-        editor : Bool
-        editor =
-            case url.path of
-                "/editor" ->
-                    True
-
-                _ ->
-                    False
-    in
     ( Model
         (Dict.fromList
             [ ( ( 0, 0 ), Grass )
@@ -84,7 +84,7 @@ init _ url _ =
         )
         ( 0, 0 )
         ( 0, 0 )
-        editor
+        (parseUrl url)
     , Cmd.none
     )
 
@@ -95,7 +95,9 @@ init _ url _ =
 
 type Msg
     = HoverHex Point
+    | ClickedGhostTile Point
     | NoOp
+    | ChangedUrl Url
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -108,8 +110,14 @@ update msg model =
             , Cmd.none
             )
 
+        ClickedGhostTile position ->
+            ( { model | tiles = model.tiles |> Dict.insert position Grass }, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
+
+        ChangedUrl url ->
+            ( { model | viewEditor = parseUrl url }, Cmd.none )
 
 
 
@@ -123,6 +131,18 @@ viewTile ( position, tile ) =
         , Svg.Events.onMouseOver (HoverHex position)
         , Svg.Attributes.class "tile"
         , Svg.Attributes.class (tileToString tile)
+        ]
+
+
+viewGhostTile : Point -> Svg Msg
+viewGhostTile position =
+    Render.viewHex
+        [ Render.hexTransform position
+        , Svg.Events.onClick (ClickedGhostTile position)
+        , Svg.Attributes.class "ghost-tile"
+        , Svg.Attributes.fill "transparent"
+        , Svg.Attributes.stroke "beige"
+        , Svg.Attributes.strokeWidth "1"
         ]
 
 
@@ -213,7 +233,8 @@ viewEditor model =
             [ Svg.defs [] [ gooFilter ]
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
-                [ Svg.Lazy.lazy viewTiles model.tiles
+                [ Svg.g [] (List.map viewGhostTile Render.square)
+                , Svg.Lazy.lazy viewTiles model.tiles
                 ]
             ]
         ]
@@ -255,5 +276,5 @@ main =
         , update = update
         , subscriptions = subscriptions
         , onUrlRequest = always NoOp
-        , onUrlChange = always NoOp
+        , onUrlChange = ChangedUrl
         }
