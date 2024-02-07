@@ -1,7 +1,7 @@
 module Main exposing (Model, Msg, Tile, main)
 
 import Browser
-import Browser.Navigation exposing (Key)
+import Browser.Events
 import Dict exposing (Dict)
 import Engine.Codec as Codec
 import Engine.Path as Path exposing (Node)
@@ -17,7 +17,6 @@ import Svg exposing (Svg)
 import Svg.Attributes
 import Svg.Events
 import Svg.Lazy
-import Url exposing (Url)
 
 
 
@@ -60,23 +59,13 @@ type alias Model =
     { tiles : Dict Point Tile
     , cameraPosition : ( Int, Int )
     , hoverTile : Point
-    , viewEditor : Bool
+    , editor : Bool
     , editorSelectedTile : Tile
     }
 
 
-parseUrl : Url -> Bool
-parseUrl url =
-    case url.path of
-        "/editor" ->
-            True
-
-        _ ->
-            False
-
-
-init : Maybe String -> Url -> Key -> ( Model, Cmd Msg )
-init mapJson url _ =
+init : Maybe String -> ( Model, Cmd Msg )
+init mapJson =
     let
         initMap : Dict Point Tile
         initMap =
@@ -104,7 +93,7 @@ init mapJson url _ =
         initMap
         ( 0, 0 )
         ( 0, 0 )
-        (parseUrl url)
+        False
         Grass
     , Cmd.none
     )
@@ -119,8 +108,7 @@ type Msg
     | ClickedHex Point
     | ClickedGhostTile Point
     | ClickedSidebarTile Tile
-    | NoOp
-    | ChangedUrl Url
+    | PressedToggleEditor
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -134,7 +122,7 @@ update msg model =
             )
 
         ClickedHex position ->
-            if model.viewEditor then
+            if model.editor then
                 let
                     newMap : Dict Point Tile
                     newMap =
@@ -162,13 +150,8 @@ update msg model =
             , Cmd.none
             )
 
-        NoOp ->
-            ( model, Cmd.none )
-
-        ChangedUrl url ->
-            ( { model | viewEditor = parseUrl url }
-            , Cmd.none
-            )
+        PressedToggleEditor ->
+            ( { model | editor = not model.editor }, Cmd.none )
 
 
 
@@ -298,19 +281,15 @@ viewEditor model =
         ]
 
 
-view : Model -> Browser.Document Msg
+view : Model -> Html Msg
 view model =
-    { title = "Elm app"
-    , body =
-        [ main_ [ Html.Attributes.id "app" ]
-            [ if model.viewEditor then
-                viewEditor model
+    main_ [ Html.Attributes.id "app" ]
+        [ if model.editor then
+            viewEditor model
 
-              else
-                viewGame model
-            ]
+          else
+            viewGame model
         ]
-    }
 
 
 
@@ -350,6 +329,20 @@ tileDecoder =
     Json.Decode.oneOf [ grassDecoder, waterDecoder ]
 
 
+toggleEditorDecoder : Decoder Msg
+toggleEditorDecoder =
+    Json.Decode.field "key" Json.Decode.string
+        |> Json.Decode.andThen
+            (\s ->
+                case s of
+                    " " ->
+                        Json.Decode.succeed PressedToggleEditor
+
+                    _ ->
+                        Json.Decode.fail "not space"
+            )
+
+
 
 -- ENCODERS
 
@@ -370,7 +363,7 @@ tileEncoder tile =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Browser.Events.onKeyPress toggleEditorDecoder
 
 
 
@@ -379,11 +372,9 @@ subscriptions _ =
 
 main : Program (Maybe String) Model Msg
 main =
-    Browser.application
+    Browser.element
         { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlRequest = always NoOp
-        , onUrlChange = ChangedUrl
         }
