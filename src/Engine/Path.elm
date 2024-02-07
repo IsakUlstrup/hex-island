@@ -58,33 +58,41 @@ moveToClosed ( position, node ) path =
     }
 
 
+{-| Find the cheapest node to move to
+-}
+findCheapest : Dict Point Node -> Maybe ( Point, Node )
+findCheapest nodes =
+    -- TODO: Sort by h if multiple nodes share lowest f
+    nodes
+        |> Dict.toList
+        |> List.sortBy (Tuple.second >> f)
+        |> List.head
+
+
+{-| Find neighbouring points that can be moved to and are not in closed list, add them to open list
+-}
+addNeighboursToOpen : (Point -> Bool) -> Point -> Path -> Path
+addNeighboursToOpen canMove position path =
+    { path
+        | open =
+            Point.neighbours position
+                |> List.filter (\p -> (Dict.member p path.closed |> not) && canMove p)
+                |> List.map (\p -> ( p, Node (Point.distance path.from p) (Point.distance path.to p) ))
+                |> Dict.fromList
+                |> Dict.union path.open
+    }
+
+
 {-| Main pathfinding loop
 -}
 step : (Point -> Bool) -> Path -> Path
 step canMove path =
-    let
-        sortedOpen : List ( Point, Node )
-        sortedOpen =
-            path.open
-                |> Dict.toList
-                |> List.sortBy (Tuple.second >> f)
-    in
-    case sortedOpen of
-        [] ->
+    case findCheapest path.open of
+        Nothing ->
             path
 
-        cheapest :: _ ->
-            let
-                -- get neighbouring points that are not in closed list and is moveable
-                neighbours : List ( Point, Node )
-                neighbours =
-                    Point.neighbours (Tuple.first cheapest)
-                        |> List.filter (\p -> (Dict.member p path.closed |> not) && canMove p)
-                        |> List.map (\p -> ( p, Node (Point.distance path.from p) (Point.distance path.to p) ))
-            in
-            { path
-                | open =
-                    Dict.union path.open (Dict.fromList neighbours)
-            }
+        Just cheapest ->
+            path
+                |> addNeighboursToOpen canMove (Tuple.first cheapest)
                 |> moveToClosed cheapest
                 |> step canMove
