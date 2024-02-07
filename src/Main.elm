@@ -3,11 +3,15 @@ module Main exposing (Model, Msg, Tile, main)
 import Browser
 import Browser.Navigation exposing (Key)
 import Dict exposing (Dict)
+import Engine.Codec as Codec
 import Engine.Path as Path exposing (Node)
 import Engine.Point exposing (Point)
 import Engine.Render as Render
 import Html exposing (Html, main_)
 import Html.Attributes
+import Json.Decode
+import Json.Encode
+import Ports
 import Svg exposing (Svg)
 import Svg.Attributes
 import Svg.Events
@@ -69,19 +73,33 @@ parseUrl url =
             False
 
 
-init : () -> Url -> Key -> ( Model, Cmd Msg )
-init _ url _ =
+init : Maybe String -> Url -> Key -> ( Model, Cmd Msg )
+init mapJson url _ =
+    let
+        initMap : Dict Point Tile
+        initMap =
+            case mapJson of
+                Just map ->
+                    case Codec.decodeMap (Json.Decode.succeed Grass) map of
+                        Ok validMap ->
+                            validMap
+
+                        Err _ ->
+                            Dict.empty
+
+                Nothing ->
+                    Dict.fromList
+                        [ ( ( 0, 0 ), Grass )
+                        , ( ( 1, -1 ), Grass )
+                        , ( ( 0, 1 ), Grass )
+                        , ( ( 1, 0 ), Water )
+                        , ( ( 2, -2 ), Water )
+                        , ( ( 2, -1 ), Water )
+                        , ( ( -1, 0 ), Grass )
+                        ]
+    in
     ( Model
-        (Dict.fromList
-            [ ( ( 0, 0 ), Grass )
-            , ( ( 1, -1 ), Grass )
-            , ( ( 0, 1 ), Grass )
-            , ( ( 1, 0 ), Water )
-            , ( ( 2, -2 ), Water )
-            , ( ( 2, -1 ), Water )
-            , ( ( -1, 0 ), Grass )
-            ]
-        )
+        initMap
         ( 0, 0 )
         ( 0, 0 )
         (parseUrl url)
@@ -111,7 +129,14 @@ update msg model =
             )
 
         ClickedGhostTile position ->
-            ( { model | tiles = model.tiles |> Dict.insert position Grass }, Cmd.none )
+            let
+                newMap : Dict Point Tile
+                newMap =
+                    model.tiles |> Dict.insert position Grass
+            in
+            ( { model | tiles = newMap }
+            , Ports.storeMap (Codec.encodeMap (\_ -> Json.Encode.string "grass") newMap)
+            )
 
         NoOp ->
             ( model, Cmd.none )
@@ -268,7 +293,7 @@ subscriptions _ =
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program (Maybe String) Model Msg
 main =
     Browser.application
         { init = init
