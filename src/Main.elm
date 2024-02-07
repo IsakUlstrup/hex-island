@@ -1,6 +1,7 @@
 module Main exposing (Model, Msg, Tile, main)
 
 import Browser
+import Browser.Navigation exposing (Key)
 import Dict exposing (Dict)
 import Engine.Path as Path exposing (Node)
 import Engine.Point exposing (Point)
@@ -11,6 +12,7 @@ import Svg exposing (Svg)
 import Svg.Attributes
 import Svg.Events
 import Svg.Lazy
+import Url exposing (Url)
 
 
 
@@ -53,11 +55,22 @@ type alias Model =
     { tiles : Dict Point Tile
     , cameraPosition : ( Int, Int )
     , hoverTile : Point
+    , viewEditor : Bool
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
+init : () -> Url -> Key -> ( Model, Cmd Msg )
+init _ url _ =
+    let
+        editor : Bool
+        editor =
+            case url.path of
+                "/editor" ->
+                    True
+
+                _ ->
+                    False
+    in
     ( Model
         (Dict.fromList
             [ ( ( 0, 0 ), Grass )
@@ -71,6 +84,7 @@ init _ =
         )
         ( 0, 0 )
         ( 0, 0 )
+        editor
     , Cmd.none
     )
 
@@ -81,6 +95,7 @@ init _ =
 
 type Msg
     = HoverHex Point
+    | NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -92,6 +107,9 @@ update msg model =
               }
             , Cmd.none
             )
+
+        NoOp ->
+            ( model, Cmd.none )
 
 
 
@@ -173,22 +191,40 @@ gooFilter =
         ]
 
 
-view : Model -> Html Msg
-view model =
-    main_ [ Html.Attributes.id "app" ]
-        [ Svg.svg
-            [ Svg.Attributes.viewBox "-1000 -1000 2000 2000"
-            , Svg.Attributes.preserveAspectRatio "xMidYMid slice"
-            , Svg.Attributes.class "game-svg"
-            ]
-            [ Svg.defs [] [ gooFilter ]
-            , Render.camera model.cameraPosition
-                [ Svg.Attributes.class "camera" ]
-                [ Svg.Lazy.lazy viewTiles model.tiles
-                , viewPath model.tiles ( 0, 0 ) model.hoverTile
-                ]
+viewGame : Model -> Html Msg
+viewGame model =
+    Svg.svg
+        [ Svg.Attributes.viewBox "-1000 -1000 2000 2000"
+        , Svg.Attributes.preserveAspectRatio "xMidYMid slice"
+        , Svg.Attributes.class "game-svg"
+        ]
+        [ Svg.defs [] [ gooFilter ]
+        , Render.camera model.cameraPosition
+            [ Svg.Attributes.class "camera" ]
+            [ Svg.Lazy.lazy viewTiles model.tiles
+            , viewPath model.tiles ( 0, 0 ) model.hoverTile
             ]
         ]
+
+
+viewEditor : Model -> Html Msg
+viewEditor _ =
+    Html.div [] [ Html.text "Tile editor coming soon" ]
+
+
+view : Model -> Browser.Document Msg
+view model =
+    { title = "Elm app"
+    , body =
+        [ main_ [ Html.Attributes.id "app" ]
+            [ if model.viewEditor then
+                viewEditor model
+
+              else
+                viewGame model
+            ]
+        ]
+    }
 
 
 
@@ -206,9 +242,11 @@ subscriptions _ =
 
 main : Program () Model Msg
 main =
-    Browser.element
+    Browser.application
         { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
+        , onUrlRequest = always NoOp
+        , onUrlChange = always NoOp
         }
