@@ -193,11 +193,8 @@ gooFilter =
 
 viewGame : Model -> Html Msg
 viewGame model =
-    Svg.svg
-        [ Svg.Attributes.viewBox "-1000 -1000 2000 2000"
-        , Svg.Attributes.preserveAspectRatio "xMidYMid slice"
-        , Svg.Attributes.class "game-svg"
-        ]
+    Render.svg
+        [ Svg.Attributes.class "game-svg" ]
         [ Svg.defs [] [ gooFilter ]
         , Render.camera model.cameraPosition
             [ Svg.Attributes.class "camera" ]
@@ -208,8 +205,18 @@ viewGame model =
 
 
 viewEditor : Model -> Html Msg
-viewEditor _ =
-    Html.div [] [ Html.text "Tile editor coming soon" ]
+viewEditor model =
+    Html.div [ Html.Attributes.class "editor" ]
+        [ Html.section [ Html.Attributes.class "sidebar" ] [ Html.text "editor" ]
+        , Render.svg
+            [ Svg.Attributes.class "game-svg" ]
+            [ Svg.defs [] [ gooFilter ]
+            , Render.camera model.cameraPosition
+                [ Svg.Attributes.class "camera" ]
+                [ Svg.Lazy.lazy viewTiles model.tiles
+                ]
+            ]
+        ]
 
 
 view : Model -> Browser.Document Msg

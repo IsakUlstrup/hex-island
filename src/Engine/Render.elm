@@ -1,10 +1,12 @@
 module Engine.Render exposing
     ( camera
     , hexTransform
+    , svg
     , viewHex
     )
 
 import Engine.Point exposing (Point)
+import Html exposing (Html)
 import Svg exposing (Attribute, Svg)
 import Svg.Attributes
 
@@ -103,3 +105,14 @@ cameraTransform ( x, y ) =
 camera : ( Int, Int ) -> List (Attribute msg) -> List (Svg msg) -> Svg msg
 camera position attrs children =
     Svg.g (cameraTransform position :: attrs) children
+
+
+svg : List (Attribute msg) -> List (Svg msg) -> Html msg
+svg attrs children =
+    Svg.svg
+        ([ Svg.Attributes.viewBox "-1000 -1000 2000 2000"
+         , Svg.Attributes.preserveAspectRatio "xMidYMid slice"
+         ]
+            ++ attrs
+        )
+        children
