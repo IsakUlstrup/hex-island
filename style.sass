@@ -23,13 +23,7 @@ body
     filter: url("#goo-filter")
 
 .tile
-    fill: beige
     transition: opacity 200ms ease-out
-
-    &.hover
-        opacity: 0.75
-    &.selected
-        fill: magenta
 
 .grass
     fill: hsl(110, 75%, 75%)
@@ -37,8 +31,5 @@ body
 .water
     fill: hsl(210, 75%, 75%)
 
-.entity
-    transition: transform 200ms ease-out
-
-.camera
-    transition: transform 200ms ease-out
+.path-node
+    pointer-events: none

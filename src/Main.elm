@@ -2,7 +2,7 @@ module Main exposing (Model, Msg, Tile, main)
 
 import Browser
 import Dict exposing (Dict)
-import Engine.Path
+import Engine.Path as Path exposing (Node)
 import Engine.Point exposing (Point)
 import Engine.Render as Render
 import Html exposing (Html, main_)
@@ -52,8 +52,7 @@ canMove tiles tile =
 type alias Model =
     { tiles : Dict Point Tile
     , cameraPosition : ( Int, Int )
-    , clickedTile : Maybe Point
-    , hoverTile : Maybe Point
+    , hoverTile : Point
     }
 
 
@@ -71,8 +70,7 @@ init _ =
             ]
         )
         ( 0, 0 )
-        Nothing
-        Nothing
+        ( 0, 0 )
     , Cmd.none
     )
 
@@ -82,23 +80,15 @@ init _ =
 
 
 type Msg
-    = ClickedHex Point
-    | HoverHex Point
+    = HoverHex Point
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ClickedHex pos ->
-            ( { model
-                | clickedTile = Just pos
-              }
-            , Cmd.none
-            )
-
         HoverHex pos ->
             ( { model
-                | hoverTile = Just pos
+                | hoverTile = pos
               }
             , Cmd.none
             )
@@ -108,64 +98,64 @@ update msg model =
 -- VIEW
 
 
-svgClassList : List ( String, Bool ) -> Svg.Attribute msg
-svgClassList classes =
-    classes
-        |> List.filter Tuple.second
-        |> List.map Tuple.first
-        |> String.join " "
-        |> Svg.Attributes.class
-
-
-viewTile : Maybe Point -> Maybe Point -> ( Point, Tile ) -> Svg Msg
-viewTile hover selected ( position, tile ) =
-    let
-        maybeEquals : Maybe Point -> Bool
-        maybeEquals m =
-            case m of
-                Just p ->
-                    p == position
-
-                Nothing ->
-                    False
-    in
+viewTile : ( Point, Tile ) -> Svg Msg
+viewTile ( position, tile ) =
     Render.viewHex
         [ Render.hexTransform position
-        , Svg.Events.onClick (ClickedHex position)
         , Svg.Events.onMouseOver (HoverHex position)
         , Svg.Attributes.class "tile"
         , Svg.Attributes.class (tileToString tile)
-        , svgClassList
-            [ ( "hover", maybeEquals hover )
-            , ( "selected", maybeEquals selected )
-            ]
         ]
 
 
-viewTiles : Maybe Point -> Maybe Point -> Dict Point Tile -> Svg Msg
-viewTiles hover selected tiles =
+viewTiles : Dict Point Tile -> Svg Msg
+viewTiles tiles =
     Svg.g [ Svg.Attributes.class "tiles" ]
         (tiles
             |> Dict.toList
-            |> List.map (viewTile hover selected)
+            |> List.map viewTile
         )
 
 
-viewPath : Dict Point Tile -> Point -> Point -> List (Svg msg)
+viewPathNode : ( Point, Node ) -> Svg msg
+viewPathNode ( pos, node ) =
+    Svg.g
+        [ Render.hexTransform pos
+        , Svg.Attributes.fontSize "2rem"
+        , Svg.Attributes.textAnchor "middle"
+        , Svg.Attributes.class "path-node"
+        ]
+        [ Render.viewHex
+            [ Svg.Attributes.fill "#262626"
+            , Svg.Attributes.fillOpacity "0.2"
+            ]
+        , Svg.text_
+            [ Svg.Attributes.x "-40"
+            , Svg.Attributes.y "-20"
+            , Svg.Attributes.fill "hsl(0, 75%, 50%)"
+            ]
+            [ Svg.text ("g: " ++ String.fromInt node.g) ]
+        , Svg.text_
+            [ Svg.Attributes.x "40"
+            , Svg.Attributes.y "-20"
+            , Svg.Attributes.fill "hsl(300, 75%, 50%)"
+            ]
+            [ Svg.text ("h: " ++ String.fromInt node.h) ]
+        , Svg.text_
+            [ Svg.Attributes.y "30"
+            , Svg.Attributes.fill "hsl(200, 75%, 50%)"
+            ]
+            [ Svg.text ("f: " ++ String.fromInt (Path.f node)) ]
+        ]
+
+
+viewPath : Dict Point Tile -> Point -> Point -> Svg msg
 viewPath tiles from to =
-    let
-        viewStep : ( Point, Int ) -> Svg msg
-        viewStep ( pos, cost ) =
-            Svg.text_
-                [ Svg.Attributes.fill "beige"
-                , Render.hexTransform pos
-                , Svg.Attributes.fontSize "2rem"
-                , Svg.Attributes.textAnchor "middle"
-                ]
-                [ Svg.text (String.fromInt cost) ]
-    in
-    Engine.Path.pathfind (canMove tiles) from to
-        |> List.map viewStep
+    Svg.g []
+        (Path.pathfind (canMove tiles) from to
+            |> Path.toList
+            |> List.map viewPathNode
+        )
 
 
 gooFilter : Svg msg
@@ -194,8 +184,8 @@ view model =
             [ Svg.defs [] [ gooFilter ]
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
-                [ Svg.Lazy.lazy3 viewTiles model.hoverTile model.clickedTile model.tiles
-                , Svg.g [] (Maybe.map2 (viewPath model.tiles) model.clickedTile model.hoverTile |> Maybe.withDefault [])
+                [ Svg.Lazy.lazy viewTiles model.tiles
+                , viewPath model.tiles ( 0, 0 ) model.hoverTile
                 ]
             ]
         ]
