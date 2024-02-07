@@ -200,7 +200,7 @@ viewPathNode ( pos, node ) =
         ]
         [ Render.viewHex
             [ Svg.Attributes.fill "#262626"
-            , Svg.Attributes.fillOpacity "0.2"
+            , Svg.Attributes.fillOpacity "0.1"
             ]
         , Svg.text_
             [ Svg.Attributes.x "-40"
