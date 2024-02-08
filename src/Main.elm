@@ -215,10 +215,15 @@ viewPathNode ( pos, node ) =
             ]
             [ Svg.text ("h: " ++ String.fromInt node.h) ]
         , Svg.text_
-            [ Svg.Attributes.y "30"
+            [ Svg.Attributes.y "15"
             , Svg.Attributes.fill "hsl(200, 75%, 50%)"
             ]
             [ Svg.text ("f: " ++ String.fromInt (Path.f node)) ]
+        , Svg.text_
+            [ Svg.Attributes.y "60"
+            , Svg.Attributes.fill "hsl(200, 75%, 0%)"
+            ]
+            [ Svg.text ("cost: " ++ String.fromInt node.totalCost) ]
         ]
 
 
