@@ -1,6 +1,7 @@
 module Engine.Render exposing
     ( camera
     , hexTransform
+    , pointToPixel
     , square
     , svg
     , viewHex

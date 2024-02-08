@@ -4,7 +4,7 @@ import Browser
 import Browser.Events
 import Dict exposing (Dict)
 import Engine.Codec as Codec
-import Engine.Path as Path exposing (Node)
+import Engine.Path as Path exposing (Node, Path)
 import Engine.Point exposing (Point)
 import Engine.Render as Render
 import Html exposing (Html, main_)
@@ -190,14 +190,16 @@ viewTiles tiles =
         )
 
 
-viewPathNode : ( Point, Node ) -> Svg msg
-viewPathNode ( pos, node ) =
+viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
+viewPathNode attrs ( pos, node ) =
     Svg.g
-        [ Render.hexTransform pos
-        , Svg.Attributes.fontSize "2rem"
-        , Svg.Attributes.textAnchor "middle"
-        , Svg.Attributes.class "path-node"
-        ]
+        ([ Render.hexTransform pos
+         , Svg.Attributes.fontSize "2rem"
+         , Svg.Attributes.textAnchor "middle"
+         , Svg.Attributes.class "path-node"
+         ]
+            ++ attrs
+        )
         [ Render.viewHex
             [ Svg.Attributes.fill "#262626"
             , Svg.Attributes.fillOpacity "0.1"
@@ -227,13 +229,52 @@ viewPathNode ( pos, node ) =
         ]
 
 
+viewPath2 : List Point -> Svg msg
+viewPath2 positions =
+    let
+        points : String
+        points =
+            positions
+                |> List.map Render.pointToPixel
+                |> List.map (\( q, r ) -> String.fromInt q ++ "," ++ String.fromInt r)
+                |> String.join " "
+    in
+    Svg.polyline
+        [ Svg.Attributes.points points
+        , Svg.Attributes.stroke "black"
+        , Svg.Attributes.fill "none"
+        , Svg.Attributes.strokeWidth "2"
+        ]
+        []
+
+
 viewPath : Dict Point Tile -> Point -> Point -> Svg msg
 viewPath tiles from to =
+    let
+        path : Path
+        path =
+            Path.pathfind (canMove tiles) from to
+    in
     Svg.g []
-        (Path.pathfind (canMove tiles) from to
-            |> Path.toList
-            |> List.map viewPathNode
-        )
+        [ Svg.g []
+            (path.closed
+                |> Dict.toList
+                |> List.map (viewPathNode [ Svg.Attributes.class "closed" ])
+            )
+        , Svg.g []
+            (path.open
+                |> Dict.toList
+                |> List.map (viewPathNode [ Svg.Attributes.class "open" ])
+            )
+        , Svg.g []
+            (case path.path of
+                Just validPath ->
+                    [ viewPath2 validPath ]
+
+                Nothing ->
+                    []
+            )
+        ]
 
 
 gooFilter : Svg msg
