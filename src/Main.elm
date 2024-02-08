@@ -61,6 +61,7 @@ type alias Model =
     , hoverTile : Point
     , editor : Bool
     , editorSelectedTile : Tile
+    , mouseDown : Bool
     }
 
 
@@ -95,6 +96,7 @@ init mapJson =
         ( 0, 0 )
         False
         Grass
+        False
     , Cmd.none
     )
 
@@ -106,20 +108,31 @@ init mapJson =
 type Msg
     = HoverHex Point
     | ClickedHex Point
-    | ClickedGhostTile Point
     | ClickedSidebarTile Tile
     | KeyPressed String
+    | MouseDownChanged Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         HoverHex pos ->
-            ( { model
-                | hoverTile = pos
-              }
-            , Cmd.none
-            )
+            if model.editor && model.mouseDown then
+                let
+                    newMap : Dict Point Tile
+                    newMap =
+                        model.tiles |> Dict.insert pos model.editorSelectedTile
+                in
+                ( { model | tiles = newMap }
+                , Ports.storeMap (Codec.encodeMap tileEncoder newMap)
+                )
+
+            else
+                ( { model
+                    | hoverTile = pos
+                  }
+                , Cmd.none
+                )
 
         ClickedHex position ->
             if model.editor then
@@ -135,16 +148,6 @@ update msg model =
             else
                 ( model, Cmd.none )
 
-        ClickedGhostTile position ->
-            let
-                newMap : Dict Point Tile
-                newMap =
-                    model.tiles |> Dict.insert position model.editorSelectedTile
-            in
-            ( { model | tiles = newMap }
-            , Ports.storeMap (Codec.encodeMap tileEncoder newMap)
-            )
-
         ClickedSidebarTile tile ->
             ( { model | editorSelectedTile = tile }
             , Cmd.none
@@ -156,19 +159,22 @@ update msg model =
                     ( { model | editor = not model.editor }, Cmd.none )
 
                 "a" ->
-                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x - 50) model.cameraPosition }, Cmd.none )
+                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x - 100) model.cameraPosition }, Cmd.none )
 
                 "d" ->
-                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x + 50) model.cameraPosition }, Cmd.none )
+                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x + 100) model.cameraPosition }, Cmd.none )
 
                 "w" ->
-                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y - 50) model.cameraPosition }, Cmd.none )
+                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y - 100) model.cameraPosition }, Cmd.none )
 
                 "s" ->
-                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y + 50) model.cameraPosition }, Cmd.none )
+                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y + 100) model.cameraPosition }, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
+
+        MouseDownChanged down ->
+            ( { model | mouseDown = down }, Cmd.none )
 
 
 
@@ -190,7 +196,8 @@ viewGhostTile : Point -> Svg Msg
 viewGhostTile position =
     Render.viewHex
         [ Render.hexTransform position
-        , Svg.Events.onClick (ClickedGhostTile position)
+        , Svg.Events.onMouseOver (HoverHex position)
+        , Svg.Events.onClick (ClickedHex position)
         , Svg.Attributes.class "ghost-tile"
         , Svg.Attributes.fill "transparent"
         , Svg.Attributes.stroke "beige"
@@ -333,7 +340,10 @@ viewEditor model =
                 ]
             ]
         , Render.svg
-            [ Svg.Attributes.class "game-svg" ]
+            [ Svg.Attributes.class "game-svg"
+            , Svg.Events.onMouseDown (MouseDownChanged True)
+            , Svg.Events.onMouseUp (MouseDownChanged False)
+            ]
             [ Svg.defs [] [ gooFilter ]
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
