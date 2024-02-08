@@ -108,7 +108,7 @@ type Msg
     | ClickedHex Point
     | ClickedGhostTile Point
     | ClickedSidebarTile Tile
-    | PressedToggleEditor
+    | KeyPressed String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -150,8 +150,25 @@ update msg model =
             , Cmd.none
             )
 
-        PressedToggleEditor ->
-            ( { model | editor = not model.editor }, Cmd.none )
+        KeyPressed key ->
+            case key of
+                " " ->
+                    ( { model | editor = not model.editor }, Cmd.none )
+
+                "a" ->
+                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x - 20) model.cameraPosition }, Cmd.none )
+
+                "d" ->
+                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x + 20) model.cameraPosition }, Cmd.none )
+
+                "w" ->
+                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y - 20) model.cameraPosition }, Cmd.none )
+
+                "s" ->
+                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y + 20) model.cameraPosition }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
 
 
@@ -375,18 +392,10 @@ tileDecoder =
     Json.Decode.oneOf [ grassDecoder, waterDecoder ]
 
 
-toggleEditorDecoder : Decoder Msg
-toggleEditorDecoder =
-    Json.Decode.field "key" Json.Decode.string
-        |> Json.Decode.andThen
-            (\s ->
-                case s of
-                    " " ->
-                        Json.Decode.succeed PressedToggleEditor
-
-                    _ ->
-                        Json.Decode.fail "not space"
-            )
+keyPressDecoder : Decoder Msg
+keyPressDecoder =
+    Json.Decode.map KeyPressed
+        (Json.Decode.field "key" Json.Decode.string)
 
 
 
@@ -409,7 +418,7 @@ tileEncoder tile =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Browser.Events.onKeyPress toggleEditorDecoder
+    Browser.Events.onKeyPress keyPressDecoder
 
 
 
