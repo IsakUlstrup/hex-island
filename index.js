@@ -1,4 +1,5 @@
 import { Elm } from "./src/Main.elm";
+import "./favicon.ico"
 
 const storedState = localStorage.getItem("map");
 
