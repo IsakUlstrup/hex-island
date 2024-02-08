@@ -156,16 +156,16 @@ update msg model =
                     ( { model | editor = not model.editor }, Cmd.none )
 
                 "a" ->
-                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x - 20) model.cameraPosition }, Cmd.none )
+                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x - 50) model.cameraPosition }, Cmd.none )
 
                 "d" ->
-                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x + 20) model.cameraPosition }, Cmd.none )
+                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x + 50) model.cameraPosition }, Cmd.none )
 
                 "w" ->
-                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y - 20) model.cameraPosition }, Cmd.none )
+                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y - 50) model.cameraPosition }, Cmd.none )
 
                 "s" ->
-                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y + 20) model.cameraPosition }, Cmd.none )
+                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y + 50) model.cameraPosition }, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
@@ -337,7 +337,7 @@ viewEditor model =
             [ Svg.defs [] [ gooFilter ]
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
-                [ Svg.g [] (List.map viewGhostTile Render.square)
+                [ Svg.g [] (List.map viewGhostTile (Render.square model.cameraPosition))
                 , Svg.Lazy.lazy viewTiles model.tiles
                 ]
             ]

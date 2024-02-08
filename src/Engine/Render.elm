@@ -120,13 +120,25 @@ svg attrs children =
         children
 
 
-square : List Point
-square =
-    (List.range -3 3
+square : ( Int, Int ) -> List Point
+square ( x, y ) =
+    let
+        center : Point
+        center =
+            ( (2 / 3 * toFloat x) / hexSize |> round
+            , (-1 / 3 * toFloat x + sqrt 3 / 3 * toFloat y) / hexSize |> round
+            )
+
+        radius : Int
+        radius =
+            5
+    in
+    (List.range -radius radius
         |> List.concatMap
             (\r ->
-                List.range -3 3
+                List.range -radius radius
                     |> List.map (\q -> ( q, r ))
             )
     )
         |> List.filter Point.isValid
+        |> List.map (Point.add center)
