@@ -1,11 +1,7 @@
-module Engine.Path exposing (Node, Path, f, pathfind)
+module Engine.Path exposing (Node, Path, pathfind)
 
 import Dict exposing (Dict)
 import Engine.Point as Point exposing (Point)
-
-
-
--- TODO: Add parent point reference
 
 
 type alias Node =
@@ -85,11 +81,27 @@ findCheapest nodes =
             )
 
 
+{-| Update mnode cost and parent to those from newNode
+-}
+updateCost : Node -> Maybe Node -> Maybe Node
+updateCost newNode mnode =
+    Maybe.map
+        (\n4 ->
+            { n4
+                | g = newNode.g
+                , h = newNode.h
+                , parent = newNode.parent
+            }
+        )
+        mnode
+
+
 {-| Find neighbouring points that can be moved to and are not in closed list, add them to open list
 -}
 addNeighboursToOpen : (Point -> Bool) -> ( Point, Node ) -> Path -> Path
 addNeighboursToOpen canMove ( position, node ) path =
     let
+        neighbours : List ( Point, Node )
         neighbours =
             Point.neighbours position
                 |> List.filter (\p -> (Dict.member p path.closed |> not) && canMove p)
@@ -98,25 +110,14 @@ addNeighboursToOpen canMove ( position, node ) path =
                         ( p, Node (node.g + 1) (Point.distance path.to p) position )
                     )
 
+        open : Dict Point Node
         open =
             List.foldl
                 (\( p, n ) openNodes ->
                     case Dict.get p openNodes of
                         Just n2 ->
                             if n.g < n2.g then
-                                Dict.update p
-                                    (\n3 ->
-                                        Maybe.map
-                                            (\n4 ->
-                                                { n4
-                                                    | g = n.g
-                                                    , h = n.h
-                                                    , parent = n.parent
-                                                }
-                                            )
-                                            n3
-                                    )
-                                    openNodes
+                                Dict.update p (updateCost n) openNodes
 
                             else
                                 openNodes

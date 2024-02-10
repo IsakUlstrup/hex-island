@@ -4,7 +4,7 @@ import Browser
 import Browser.Events
 import Dict exposing (Dict)
 import Engine.Codec as Codec
-import Engine.Path as Path exposing (Node, Path)
+import Engine.Path as Path exposing (Path)
 import Engine.Point exposing (Point)
 import Engine.Render as Render
 import Html exposing (Html, main_)
@@ -216,38 +216,39 @@ viewTiles tiles =
         )
 
 
-viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
-viewPathNode attrs ( pos, node ) =
-    Svg.g
-        ([ Render.hexTransform pos
-         , Svg.Attributes.fontSize "2rem"
-         , Svg.Attributes.textAnchor "middle"
-         , Svg.Attributes.class "path-node"
-         ]
-            ++ attrs
-        )
-        [ Render.viewHex
-            [ Svg.Attributes.fill "#262626"
-            , Svg.Attributes.fillOpacity "0.1"
-            ]
-        , Svg.text_
-            [ Svg.Attributes.x "-40"
-            , Svg.Attributes.y "-20"
-            , Svg.Attributes.fill "hsl(0, 75%, 50%)"
-            ]
-            [ Svg.text ("g: " ++ String.fromInt node.g) ]
-        , Svg.text_
-            [ Svg.Attributes.x "40"
-            , Svg.Attributes.y "-20"
-            , Svg.Attributes.fill "hsl(300, 75%, 50%)"
-            ]
-            [ Svg.text ("h: " ++ String.fromInt node.h) ]
-        , Svg.text_
-            [ Svg.Attributes.y "15"
-            , Svg.Attributes.fill "hsl(200, 75%, 50%)"
-            ]
-            [ Svg.text ("f: " ++ String.fromInt (Path.f node)) ]
-        ]
+
+-- viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
+-- viewPathNode attrs ( pos, node ) =
+--     Svg.g
+--         ([ Render.hexTransform pos
+--          , Svg.Attributes.fontSize "2rem"
+--          , Svg.Attributes.textAnchor "middle"
+--          , Svg.Attributes.class "path-node"
+--          ]
+--             ++ attrs
+--         )
+--         [ Render.viewHex
+--             [ Svg.Attributes.fill "#262626"
+--             , Svg.Attributes.fillOpacity "0.1"
+--             ]
+--         , Svg.text_
+--             [ Svg.Attributes.x "-40"
+--             , Svg.Attributes.y "-20"
+--             , Svg.Attributes.fill "hsl(0, 75%, 50%)"
+--             ]
+--             [ Svg.text ("g: " ++ String.fromInt node.g) ]
+--         , Svg.text_
+--             [ Svg.Attributes.x "40"
+--             , Svg.Attributes.y "-20"
+--             , Svg.Attributes.fill "hsl(300, 75%, 50%)"
+--             ]
+--             [ Svg.text ("h: " ++ String.fromInt node.h) ]
+--         , Svg.text_
+--             [ Svg.Attributes.y "15"
+--             , Svg.Attributes.fill "hsl(200, 75%, 50%)"
+--             ]
+--             [ Svg.text ("f: " ++ String.fromInt (Path.f node)) ]
+--         ]
 
 
 viewPath2 : List Point -> Svg msg
@@ -264,7 +265,7 @@ viewPath2 positions =
         [ Svg.Attributes.points points
         , Svg.Attributes.stroke "beige"
         , Svg.Attributes.fill "none"
-        , Svg.Attributes.strokeWidth "10"
+        , Svg.Attributes.strokeWidth "20"
         , Svg.Attributes.strokeLinecap "round"
         , Svg.Attributes.strokeLinecap "round"
         ]
