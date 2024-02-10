@@ -98,7 +98,7 @@ cameraTransform ( x, y ) =
             ++ String.fromInt -x
             ++ "px, "
             ++ String.fromInt -y
-            ++ "px)"
+            ++ "px) scale(0.5)"
         )
 
 

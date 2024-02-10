@@ -11,7 +11,6 @@ import Engine.Point as Point exposing (Point)
 type alias Node =
     { g : Int
     , h : Int
-    , totalCost : Int
     , parent : Point
     }
 
@@ -36,7 +35,7 @@ type alias Path =
 -}
 init : Point -> Point -> Path
 init from to =
-    Path (Dict.singleton from (Node (Point.distance from from) (Point.distance from to) 0 from)) Dict.empty from to Nothing
+    Path (Dict.singleton from (Node 0 0 from)) Dict.empty from to Nothing
 
 
 {-| Find shortest path between two points using A\*
@@ -90,17 +89,45 @@ findCheapest nodes =
 -}
 addNeighboursToOpen : (Point -> Bool) -> ( Point, Node ) -> Path -> Path
 addNeighboursToOpen canMove ( position, node ) path =
-    { path
-        | open =
+    let
+        neighbours =
             Point.neighbours position
                 |> List.filter (\p -> (Dict.member p path.closed |> not) && canMove p)
                 |> List.map
                     (\p ->
-                        ( p, Node (Point.distance path.from p) (Point.distance path.to p) (node.totalCost + 1) position )
+                        ( p, Node (node.g + 1) (Point.distance path.to p) position )
                     )
-                |> Dict.fromList
-                |> Dict.union path.open
-    }
+
+        open =
+            List.foldl
+                (\( p, n ) openNodes ->
+                    case Dict.get p openNodes of
+                        Just n2 ->
+                            if n.g < n2.g then
+                                Dict.update p
+                                    (\n3 ->
+                                        Maybe.map
+                                            (\n4 ->
+                                                { n4
+                                                    | g = n.g
+                                                    , h = n.h
+                                                    , parent = n.parent
+                                                }
+                                            )
+                                            n3
+                                    )
+                                    openNodes
+
+                            else
+                                openNodes
+
+                        Nothing ->
+                            Dict.insert p n openNodes
+                )
+                path.open
+                neighbours
+    in
+    { path | open = open }
 
 
 reconstructPath : ( Point, Node ) -> Dict Point Node -> List Point -> List Point

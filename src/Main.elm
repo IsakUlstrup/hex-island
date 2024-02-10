@@ -247,11 +247,6 @@ viewPathNode attrs ( pos, node ) =
             , Svg.Attributes.fill "hsl(200, 75%, 50%)"
             ]
             [ Svg.text ("f: " ++ String.fromInt (Path.f node)) ]
-        , Svg.text_
-            [ Svg.Attributes.y "60"
-            , Svg.Attributes.fill "hsl(200, 75%, 0%)"
-            ]
-            [ Svg.text ("cost: " ++ String.fromInt node.totalCost) ]
         ]
 
 
@@ -267,9 +262,11 @@ viewPath2 positions =
     in
     Svg.polyline
         [ Svg.Attributes.points points
-        , Svg.Attributes.stroke "black"
+        , Svg.Attributes.stroke "beige"
         , Svg.Attributes.fill "none"
-        , Svg.Attributes.strokeWidth "2"
+        , Svg.Attributes.strokeWidth "10"
+        , Svg.Attributes.strokeLinecap "round"
+        , Svg.Attributes.strokeLinecap "round"
         ]
         []
 
@@ -282,17 +279,17 @@ viewPath tiles from to =
             Path.pathfind (canMove tiles) from to
     in
     Svg.g []
-        [ Svg.g []
-            (path.closed
-                |> Dict.toList
-                |> List.map (viewPathNode [ Svg.Attributes.class "closed" ])
-            )
-        , Svg.g []
-            (path.open
-                |> Dict.toList
-                |> List.map (viewPathNode [ Svg.Attributes.class "open" ])
-            )
-        , Svg.g []
+        [ --     Svg.g []
+          --     (path.closed
+          --         |> Dict.toList
+          --         |> List.map (viewPathNode [ Svg.Attributes.class "closed" ])
+          --     )
+          -- , Svg.g []
+          --     (path.open
+          --         |> Dict.toList
+          --         |> List.map (viewPathNode [ Svg.Attributes.class "open" ])
+          --     )
+          Svg.g []
             (case path.path of
                 Just validPath ->
                     [ viewPath2 validPath ]
