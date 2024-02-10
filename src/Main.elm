@@ -183,12 +183,14 @@ update msg model =
 
 viewTile : ( Point, Tile ) -> Svg Msg
 viewTile ( position, tile ) =
-    Render.viewHex
-        [ Render.hexTransform position
-        , Svg.Events.onMouseOver (HoverHex position)
-        , Svg.Events.onClick (ClickedHex position)
-        , Svg.Attributes.class "tile"
-        , Svg.Attributes.class (tileToString tile)
+    Svg.g [ Render.hexTransform position ]
+        [ Render.viewHex
+            [ Svg.Events.onMouseOver (HoverHex position)
+            , Svg.Events.onClick (ClickedHex position)
+            , Svg.Attributes.class "tile"
+            , Svg.Attributes.class (tileToString tile)
+            , Svg.Attributes.transform "scale(1.02)"
+            ]
         ]
 
 
@@ -323,7 +325,30 @@ viewGame model =
         [ Svg.defs [] [ gooFilter ]
         , Render.camera model.cameraPosition
             [ Svg.Attributes.class "camera" ]
-            [ Svg.Lazy.lazy viewTiles model.tiles
+            [ Svg.Lazy.lazy viewTiles
+                (model.tiles
+                    |> Dict.filter
+                        (\_ tile ->
+                            case tile of
+                                Grass ->
+                                    True
+
+                                Water ->
+                                    False
+                        )
+                )
+            , Svg.Lazy.lazy viewTiles
+                (model.tiles
+                    |> Dict.filter
+                        (\_ tile ->
+                            case tile of
+                                Water ->
+                                    True
+
+                                Grass ->
+                                    False
+                        )
+                )
             , viewPath model.tiles ( 0, 0 ) model.hoverTile
             ]
         ]
@@ -348,7 +373,30 @@ viewEditor model =
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
                 [ Svg.g [] (List.map viewGhostTile (Render.square model.cameraPosition))
-                , Svg.Lazy.lazy viewTiles model.tiles
+                , Svg.Lazy.lazy viewTiles
+                    (model.tiles
+                        |> Dict.filter
+                            (\_ tile ->
+                                case tile of
+                                    Grass ->
+                                        True
+
+                                    Water ->
+                                        False
+                            )
+                    )
+                , Svg.Lazy.lazy viewTiles
+                    (model.tiles
+                        |> Dict.filter
+                            (\_ tile ->
+                                case tile of
+                                    Water ->
+                                        True
+
+                                    Grass ->
+                                        False
+                            )
+                    )
                 ]
             ]
         ]
