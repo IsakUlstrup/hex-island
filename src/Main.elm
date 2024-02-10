@@ -4,8 +4,8 @@ import Browser
 import Browser.Events
 import Dict exposing (Dict)
 import Engine.Codec as Codec
-import Engine.Path as Path exposing (Path)
-import Engine.Point exposing (Point)
+import Engine.Path as Path exposing (Node, Path)
+import Engine.Point as Point exposing (Point)
 import Engine.Render as Render
 import Html exposing (Html, main_)
 import Html.Attributes
@@ -216,39 +216,58 @@ viewTiles tiles =
         )
 
 
+viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
+viewPathNode attrs ( pos, node ) =
+    let
+        ( toX, toY ) =
+            Render.pointToPixel (Point.subtract node.parent pos)
+    in
+    Svg.g
+        ([ Render.hexTransform pos
+         , Svg.Attributes.fontSize "2rem"
+         , Svg.Attributes.textAnchor "middle"
+         , Svg.Attributes.class "path-node"
+         ]
+            ++ attrs
+        )
+        [ Render.viewHex
+            [ Svg.Attributes.fillOpacity "0.2"
+            ]
+        , Svg.text_
+            [ Svg.Attributes.x "-40"
+            , Svg.Attributes.y "-20"
+            , Svg.Attributes.fill "hsl(0, 75%, 50%)"
+            ]
+            [ Svg.text ("g: " ++ String.fromInt node.g) ]
+        , Svg.text_
+            [ Svg.Attributes.x "40"
+            , Svg.Attributes.y "-20"
+            , Svg.Attributes.fill "hsl(300, 75%, 50%)"
+            ]
+            [ Svg.text ("h: " ++ String.fromInt node.h) ]
+        , Svg.line
+            [ Svg.Attributes.x1 "0"
+            , Svg.Attributes.y1 "0"
+            , Svg.Attributes.x2 (String.fromInt toX)
+            , Svg.Attributes.y2 (String.fromInt toY)
+            , Svg.Attributes.strokeWidth "3"
+            , Svg.Attributes.stroke "beige"
+            ]
+            []
+        , Svg.circle
+            [ Svg.Attributes.cx (String.fromInt toX)
+            , Svg.Attributes.cy (String.fromInt toY)
+            , Svg.Attributes.r "10"
+            , Svg.Attributes.fill "beige"
+            ]
+            []
 
--- viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
--- viewPathNode attrs ( pos, node ) =
---     Svg.g
---         ([ Render.hexTransform pos
---          , Svg.Attributes.fontSize "2rem"
---          , Svg.Attributes.textAnchor "middle"
---          , Svg.Attributes.class "path-node"
---          ]
---             ++ attrs
---         )
---         [ Render.viewHex
---             [ Svg.Attributes.fill "#262626"
---             , Svg.Attributes.fillOpacity "0.1"
---             ]
---         , Svg.text_
---             [ Svg.Attributes.x "-40"
---             , Svg.Attributes.y "-20"
---             , Svg.Attributes.fill "hsl(0, 75%, 50%)"
---             ]
---             [ Svg.text ("g: " ++ String.fromInt node.g) ]
---         , Svg.text_
---             [ Svg.Attributes.x "40"
---             , Svg.Attributes.y "-20"
---             , Svg.Attributes.fill "hsl(300, 75%, 50%)"
---             ]
---             [ Svg.text ("h: " ++ String.fromInt node.h) ]
---         , Svg.text_
---             [ Svg.Attributes.y "15"
---             , Svg.Attributes.fill "hsl(200, 75%, 50%)"
---             ]
---             [ Svg.text ("f: " ++ String.fromInt (Path.f node)) ]
---         ]
+        -- , Svg.text_
+        --     [ Svg.Attributes.y "15"
+        --     , Svg.Attributes.fill "hsl(200, 75%, 50%)"
+        --     ]
+        --     [ Svg.text ("f: " ++ String.fromInt (Path.f node)) ]
+        ]
 
 
 viewPath2 : List Point -> Svg msg
@@ -278,19 +297,35 @@ viewPath tiles from to =
         path : Path
         path =
             Path.pathfind (canMove tiles) from to
+
+        debug : Bool
+        debug =
+            False
     in
-    Svg.g []
-        [ --     Svg.g []
-          --     (path.closed
-          --         |> Dict.toList
-          --         |> List.map (viewPathNode [ Svg.Attributes.class "closed" ])
-          --     )
-          -- , Svg.g []
-          --     (path.open
-          --         |> Dict.toList
-          --         |> List.map (viewPathNode [ Svg.Attributes.class "open" ])
-          --     )
-          Svg.g []
+    if debug then
+        Svg.g []
+            [ Svg.g []
+                (path.closed
+                    |> Dict.toList
+                    |> List.map (viewPathNode [ Svg.Attributes.class "closed" ])
+                )
+            , Svg.g []
+                (path.open
+                    |> Dict.toList
+                    |> List.map (viewPathNode [ Svg.Attributes.class "open" ])
+                )
+            , Svg.g []
+                (case path.path of
+                    Just validPath ->
+                        [ viewPath2 validPath ]
+
+                    Nothing ->
+                        []
+                )
+            ]
+
+    else
+        Svg.g []
             (case path.path of
                 Just validPath ->
                     [ viewPath2 validPath ]
@@ -298,7 +333,6 @@ viewPath tiles from to =
                 Nothing ->
                     []
             )
-        ]
 
 
 gooFilter : Svg msg

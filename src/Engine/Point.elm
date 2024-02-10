@@ -1,4 +1,4 @@
-module Engine.Point exposing (Point, add, distance, isValid, neighbours)
+module Engine.Point exposing (Point, add, distance, isValid, neighbours, subtract)
 
 {-| Axial coordinate
 -}
