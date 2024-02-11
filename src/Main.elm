@@ -27,11 +27,6 @@ type alias Tile =
     Int
 
 
-tileToString : Tile -> String
-tileToString tile =
-    String.fromInt tile
-
-
 canMove : Dict Point Tile -> Point -> Point -> Bool
 canMove tiles from to =
     case ( Dict.get from tiles, Dict.get to tiles ) of
@@ -175,13 +170,12 @@ update msg model =
 
 
 viewTile : List (Svg.Attribute Msg) -> ( Point, Tile ) -> Svg Msg
-viewTile attrs ( position, tile ) =
+viewTile attrs ( position, _ ) =
     Svg.g [ Render.hexTransform position ]
         [ Render.viewHex
             ([ Svg.Events.onMouseOver (HoverHex position)
              , Svg.Events.onClick (ClickedHex position)
              , Svg.Attributes.class "tile"
-             , Svg.Attributes.class ("level" ++ tileToString tile)
              ]
                 ++ attrs
             )
@@ -204,7 +198,11 @@ viewGhostTile position =
 viewTiles : Int -> Dict Point Tile -> Svg Msg
 viewTiles level tiles =
     if level == 0 then
-        Svg.g [ Svg.Attributes.class "tiles", Svg.Attributes.style "opacity: 0.5" ]
+        Svg.g
+            [ Svg.Attributes.class "tiles"
+            , Svg.Attributes.style "opacity: 0.5"
+            , Svg.Attributes.class ("level-" ++ String.fromInt level)
+            ]
             (tiles
                 |> Dict.toList
                 |> List.filter (\( _, tile ) -> tile >= level)
@@ -212,7 +210,10 @@ viewTiles level tiles =
             )
 
     else
-        Svg.g [ Svg.Attributes.class "tiles" ]
+        Svg.g
+            [ Svg.Attributes.class "tiles"
+            , Svg.Attributes.class ("level-" ++ String.fromInt level)
+            ]
             (tiles
                 |> Dict.toList
                 |> List.filter (\( _, tile ) -> tile >= level)
@@ -385,11 +386,11 @@ viewEditor model =
             [ Svg.defs [] [ gooFilter ]
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
-                [ Svg.g [] (List.map viewGhostTile (Render.square model.cameraPosition))
-                , Svg.Lazy.lazy (viewTiles 0) model.tiles
+                [ Svg.Lazy.lazy (viewTiles 0) model.tiles
                 , Svg.Lazy.lazy (viewTiles 1) model.tiles
                 , Svg.Lazy.lazy (viewTiles 2) model.tiles
                 , Svg.Lazy.lazy (viewTiles 3) model.tiles
+                , Svg.g [] (List.map viewGhostTile (Render.square model.cameraPosition))
                 ]
             ]
         ]
