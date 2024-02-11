@@ -285,7 +285,7 @@ viewPath2 positions =
         , Svg.Attributes.fill "none"
         , Svg.Attributes.strokeWidth "20"
         , Svg.Attributes.strokeLinecap "round"
-        , Svg.Attributes.strokeLinecap "round"
+        , Svg.Attributes.strokeLinejoin "round"
         ]
         []
 
