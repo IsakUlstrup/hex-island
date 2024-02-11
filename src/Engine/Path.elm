@@ -36,13 +36,9 @@ init from to =
 
 {-| Find shortest path between two points using A\*
 -}
-pathfind : (Point -> Bool) -> Point -> Point -> Path
+pathfind : (Point -> Point -> Bool) -> Point -> Point -> Path
 pathfind canMove from to =
-    if canMove to then
-        init from to |> step canMove
-
-    else
-        init from to
+    init from to |> step canMove
 
 
 {-| Move node from open to closed
@@ -98,13 +94,13 @@ updateCost newNode mnode =
 
 {-| Find neighbouring points that can be moved to and are not in closed list, add them to open list
 -}
-addNeighboursToOpen : (Point -> Bool) -> ( Point, Node ) -> Path -> Path
+addNeighboursToOpen : (Point -> Point -> Bool) -> ( Point, Node ) -> Path -> Path
 addNeighboursToOpen canMove ( position, node ) path =
     let
         neighbours : List ( Point, Node )
         neighbours =
             Point.neighbours position
-                |> List.filter (\p -> (Dict.member p path.closed |> not) && canMove p)
+                |> List.filter (\p -> (Dict.member p path.closed |> not) && canMove position p)
                 |> List.map
                     (\p ->
                         ( p, Node (node.g + 1) (Point.distance path.to p) position )
@@ -149,7 +145,7 @@ reconstructPath ( position, node ) nodes acum =
 
 {-| Main pathfinding loop
 -}
-step : (Point -> Bool) -> Path -> Path
+step : (Point -> Point -> Bool) -> Path -> Path
 step canMove path =
     case ( findCheapest path.open, Dict.member path.to path.closed ) of
         ( Just cheapest, False ) ->

@@ -23,31 +23,32 @@ import Svg.Lazy
 -- TILE
 
 
-type Tile
-    = Water
-    | Grass
+type alias Tile =
+    Int
 
 
 tileToString : Tile -> String
 tileToString tile =
-    case tile of
-        Water ->
-            "water"
-
-        Grass ->
-            "grass"
+    String.fromInt tile
 
 
-canMove : Dict Point Tile -> Point -> Bool
-canMove tiles tile =
-    case Dict.get tile tiles of
-        Just Water ->
-            False
+canMove : Dict Point Tile -> Point -> Point -> Bool
+canMove tiles from to =
+    case ( Dict.get from tiles, Dict.get to tiles ) of
+        ( Just f, Just t ) ->
+            if t == 0 then
+                False
 
-        Just Grass ->
-            True
+            else if f > t then
+                f - t == 1
 
-        Nothing ->
+            else if t > f then
+                t - f == 1
+
+            else
+                True
+
+        _ ->
             False
 
 
@@ -80,22 +81,14 @@ init mapJson =
                             Dict.empty
 
                 Nothing ->
-                    Dict.fromList
-                        [ ( ( 0, 0 ), Grass )
-                        , ( ( 1, -1 ), Grass )
-                        , ( ( 0, 1 ), Grass )
-                        , ( ( 1, 0 ), Water )
-                        , ( ( 2, -2 ), Water )
-                        , ( ( 2, -1 ), Water )
-                        , ( ( -1, 0 ), Grass )
-                        ]
+                    Dict.empty
     in
     ( Model
         initMap
         ( 0, 0 )
         ( 0, 0 )
         False
-        Grass
+        1
         False
     , Cmd.none
     )
@@ -181,16 +174,17 @@ update msg model =
 -- VIEW
 
 
-viewTile : ( Point, Tile ) -> Svg Msg
-viewTile ( position, tile ) =
+viewTile : List (Svg.Attribute Msg) -> ( Point, Tile ) -> Svg Msg
+viewTile attrs ( position, tile ) =
     Svg.g [ Render.hexTransform position ]
         [ Render.viewHex
-            [ Svg.Events.onMouseOver (HoverHex position)
-            , Svg.Events.onClick (ClickedHex position)
-            , Svg.Attributes.class "tile"
-            , Svg.Attributes.class (tileToString tile)
-            , Svg.Attributes.transform "scale(1.02)"
-            ]
+            ([ Svg.Events.onMouseOver (HoverHex position)
+             , Svg.Events.onClick (ClickedHex position)
+             , Svg.Attributes.class "tile"
+             , Svg.Attributes.class ("level" ++ tileToString tile)
+             ]
+                ++ attrs
+            )
         ]
 
 
@@ -207,13 +201,23 @@ viewGhostTile position =
         ]
 
 
-viewTiles : Dict Point Tile -> Svg Msg
-viewTiles tiles =
-    Svg.g [ Svg.Attributes.class "tiles" ]
-        (tiles
-            |> Dict.toList
-            |> List.map viewTile
-        )
+viewTiles : Int -> Dict Point Tile -> Svg Msg
+viewTiles level tiles =
+    if level == 0 then
+        Svg.g [ Svg.Attributes.class "tiles", Svg.Attributes.style "opacity: 0.5" ]
+            (tiles
+                |> Dict.toList
+                |> List.filter (\( _, tile ) -> tile >= level)
+                |> List.map (viewTile [])
+            )
+
+    else
+        Svg.g [ Svg.Attributes.class "tiles" ]
+            (tiles
+                |> Dict.toList
+                |> List.filter (\( _, tile ) -> tile >= level)
+                |> List.map (viewTile [])
+            )
 
 
 viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
@@ -261,12 +265,6 @@ viewPathNode attrs ( pos, node ) =
             , Svg.Attributes.fill "beige"
             ]
             []
-
-        -- , Svg.text_
-        --     [ Svg.Attributes.y "15"
-        --     , Svg.Attributes.fill "hsl(200, 75%, 50%)"
-        --     ]
-        --     [ Svg.text ("f: " ++ String.fromInt (Path.f node)) ]
         ]
 
 
@@ -357,30 +355,10 @@ viewGame model =
         [ Svg.defs [] [ gooFilter ]
         , Render.camera model.cameraPosition
             [ Svg.Attributes.class "camera" ]
-            [ Svg.Lazy.lazy viewTiles
-                (model.tiles
-                    |> Dict.filter
-                        (\_ tile ->
-                            case tile of
-                                Grass ->
-                                    True
-
-                                Water ->
-                                    False
-                        )
-                )
-            , Svg.Lazy.lazy viewTiles
-                (model.tiles
-                    |> Dict.filter
-                        (\_ tile ->
-                            case tile of
-                                Water ->
-                                    True
-
-                                Grass ->
-                                    False
-                        )
-                )
+            [ Svg.Lazy.lazy2 viewTiles 0 model.tiles
+            , Svg.Lazy.lazy2 viewTiles 1 model.tiles
+            , Svg.Lazy.lazy2 viewTiles 2 model.tiles
+            , Svg.Lazy.lazy2 viewTiles 3 model.tiles
             , viewPath model.tiles ( 0, 0 ) model.hoverTile
             ]
         ]
@@ -392,8 +370,11 @@ viewEditor model =
         [ Html.section [ Html.Attributes.class "sidebar" ]
             [ Html.h1 [] [ Html.text "Tile" ]
             , Html.ul []
-                [ Html.li [ Html.Events.onClick (ClickedSidebarTile Grass) ] [ Html.text "Grass" ]
-                , Html.li [ Html.Events.onClick (ClickedSidebarTile Water) ] [ Html.text "Water" ]
+                [ Html.li [ Html.Events.onClick (ClickedSidebarTile 0) ] [ Html.text "0" ]
+                , Html.li [ Html.Events.onClick (ClickedSidebarTile 1) ] [ Html.text "1" ]
+                , Html.li [ Html.Events.onClick (ClickedSidebarTile 2) ] [ Html.text "2" ]
+                , Html.li [ Html.Events.onClick (ClickedSidebarTile 3) ] [ Html.text "3" ]
+                , Html.li [ Html.Events.onClick (ClickedSidebarTile -1) ] [ Html.text "-1" ]
                 ]
             ]
         , Render.svg
@@ -405,30 +386,10 @@ viewEditor model =
             , Render.camera model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
                 [ Svg.g [] (List.map viewGhostTile (Render.square model.cameraPosition))
-                , Svg.Lazy.lazy viewTiles
-                    (model.tiles
-                        |> Dict.filter
-                            (\_ tile ->
-                                case tile of
-                                    Grass ->
-                                        True
-
-                                    Water ->
-                                        False
-                            )
-                    )
-                , Svg.Lazy.lazy viewTiles
-                    (model.tiles
-                        |> Dict.filter
-                            (\_ tile ->
-                                case tile of
-                                    Water ->
-                                        True
-
-                                    Grass ->
-                                        False
-                            )
-                    )
+                , Svg.Lazy.lazy (viewTiles 0) model.tiles
+                , Svg.Lazy.lazy (viewTiles 1) model.tiles
+                , Svg.Lazy.lazy (viewTiles 2) model.tiles
+                , Svg.Lazy.lazy (viewTiles 3) model.tiles
                 ]
             ]
         ]
@@ -449,37 +410,9 @@ view model =
 -- DECODERS
 
 
-grassDecoder : Decoder Tile
-grassDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen
-            (\s ->
-                case s of
-                    "grass" ->
-                        Json.Decode.succeed Grass
-
-                    _ ->
-                        Json.Decode.fail "invalid tile"
-            )
-
-
-waterDecoder : Decoder Tile
-waterDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen
-            (\s ->
-                case s of
-                    "water" ->
-                        Json.Decode.succeed Water
-
-                    _ ->
-                        Json.Decode.fail "invalid tile"
-            )
-
-
 tileDecoder : Decoder Tile
 tileDecoder =
-    Json.Decode.oneOf [ grassDecoder, waterDecoder ]
+    Json.Decode.int
 
 
 keyPressDecoder : Decoder Msg
@@ -494,12 +427,7 @@ keyPressDecoder =
 
 tileEncoder : Tile -> Json.Encode.Value
 tileEncoder tile =
-    case tile of
-        Grass ->
-            Json.Encode.string "grass"
-
-        Water ->
-            Json.Encode.string "water"
+    Json.Encode.int tile
 
 
 
