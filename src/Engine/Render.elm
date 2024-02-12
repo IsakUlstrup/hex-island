@@ -1,12 +1,15 @@
 module Engine.Render exposing
     ( camera
     , hexTransform
-    , pointToPixel
     , square
     , svg
+    , viewDebugPath
     , viewHex
+    , viewValidPath
     )
 
+import Dict
+import Engine.Path exposing (Node, Path)
 import Engine.Point as Point exposing (Point)
 import Html exposing (Html)
 import Svg exposing (Attribute, Svg)
@@ -142,3 +145,96 @@ square ( x, y ) =
     )
         |> List.filter Point.isValid
         |> List.map (Point.add center)
+
+
+
+-- PATHFINDING DEBUG
+
+
+viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
+viewPathNode attrs ( pos, node ) =
+    let
+        ( toX, toY ) =
+            pointToPixel (Point.subtract node.parent pos)
+    in
+    Svg.g
+        ([ hexTransform pos
+         , Svg.Attributes.fontSize "2rem"
+         , Svg.Attributes.textAnchor "middle"
+         , Svg.Attributes.class "path-node"
+         ]
+            ++ attrs
+        )
+        [ viewHex
+            [ Svg.Attributes.fillOpacity "0.2"
+            ]
+        , Svg.text_
+            [ Svg.Attributes.x "-40"
+            , Svg.Attributes.y "-20"
+            , Svg.Attributes.fill "hsl(0, 75%, 50%)"
+            ]
+            [ Svg.text ("g: " ++ String.fromInt node.g) ]
+        , Svg.text_
+            [ Svg.Attributes.x "40"
+            , Svg.Attributes.y "-20"
+            , Svg.Attributes.fill "hsl(300, 75%, 50%)"
+            ]
+            [ Svg.text ("h: " ++ String.fromInt node.h) ]
+        , Svg.line
+            [ Svg.Attributes.x1 "0"
+            , Svg.Attributes.y1 "0"
+            , Svg.Attributes.x2 (String.fromInt toX)
+            , Svg.Attributes.y2 (String.fromInt toY)
+            , Svg.Attributes.strokeWidth "3"
+            , Svg.Attributes.stroke "beige"
+            ]
+            []
+        , Svg.circle
+            [ Svg.Attributes.cx (String.fromInt toX)
+            , Svg.Attributes.cy (String.fromInt toY)
+            , Svg.Attributes.r "10"
+            , Svg.Attributes.fill "beige"
+            ]
+            []
+        ]
+
+
+viewValidPath : List Point -> Svg msg
+viewValidPath positions =
+    let
+        points : String
+        points =
+            positions
+                |> List.map pointToPixel
+                |> List.map (\( q, r ) -> String.fromInt q ++ "," ++ String.fromInt r)
+                |> String.join " "
+    in
+    Svg.polyline
+        [ Svg.Attributes.points points
+        , Svg.Attributes.class "path"
+        ]
+        []
+
+
+viewDebugPath : Path -> Svg msg
+viewDebugPath path =
+    Svg.g []
+        [ Svg.g []
+            (path.closed
+                |> Dict.toList
+                |> List.map (viewPathNode [ Svg.Attributes.class "closed" ])
+            )
+        , Svg.g []
+            (path.open
+                |> Dict.toList
+                |> List.map (viewPathNode [ Svg.Attributes.class "open" ])
+            )
+        , Svg.g []
+            (case path.path of
+                Just validPath ->
+                    [ viewValidPath validPath ]
+
+                Nothing ->
+                    []
+            )
+        ]

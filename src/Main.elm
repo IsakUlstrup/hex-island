@@ -4,8 +4,8 @@ import Browser
 import Browser.Events
 import Dict exposing (Dict)
 import Engine.Codec as Codec
-import Engine.Path as Path exposing (Node, Path)
-import Engine.Point as Point exposing (Point)
+import Engine.Path as Path exposing (Path)
+import Engine.Point exposing (Point)
 import Engine.Render as Render
 import Html exposing (Html, main_)
 import Html.Attributes
@@ -59,6 +59,7 @@ type alias Model =
     , editor : Bool
     , editorSelectedTile : Maybe Tile
     , mouseDown : Bool
+    , viewPathDebug : Bool
     }
 
 
@@ -86,6 +87,7 @@ init mapJson =
         False
         Nothing
         False
+        False
     , Cmd.none
     )
 
@@ -100,6 +102,7 @@ type Msg
     | ClickedSidebarTile (Maybe Tile)
     | KeyPressed String
     | MouseDownChanged Bool
+    | ToggledViewPathDebug Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -175,6 +178,9 @@ update msg model =
         MouseDownChanged down ->
             ( { model | mouseDown = down }, Cmd.none )
 
+        ToggledViewPathDebug flag ->
+            ( { model | viewPathDebug = flag }, Cmd.none )
+
 
 
 -- VIEW
@@ -219,109 +225,21 @@ viewTiles level tiles =
         )
 
 
-viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
-viewPathNode attrs ( pos, node ) =
-    let
-        ( toX, toY ) =
-            Render.pointToPixel (Point.subtract node.parent pos)
-    in
-    Svg.g
-        ([ Render.hexTransform pos
-         , Svg.Attributes.fontSize "2rem"
-         , Svg.Attributes.textAnchor "middle"
-         , Svg.Attributes.class "path-node"
-         ]
-            ++ attrs
-        )
-        [ Render.viewHex
-            [ Svg.Attributes.fillOpacity "0.2"
-            ]
-        , Svg.text_
-            [ Svg.Attributes.x "-40"
-            , Svg.Attributes.y "-20"
-            , Svg.Attributes.fill "hsl(0, 75%, 50%)"
-            ]
-            [ Svg.text ("g: " ++ String.fromInt node.g) ]
-        , Svg.text_
-            [ Svg.Attributes.x "40"
-            , Svg.Attributes.y "-20"
-            , Svg.Attributes.fill "hsl(300, 75%, 50%)"
-            ]
-            [ Svg.text ("h: " ++ String.fromInt node.h) ]
-        , Svg.line
-            [ Svg.Attributes.x1 "0"
-            , Svg.Attributes.y1 "0"
-            , Svg.Attributes.x2 (String.fromInt toX)
-            , Svg.Attributes.y2 (String.fromInt toY)
-            , Svg.Attributes.strokeWidth "3"
-            , Svg.Attributes.stroke "beige"
-            ]
-            []
-        , Svg.circle
-            [ Svg.Attributes.cx (String.fromInt toX)
-            , Svg.Attributes.cy (String.fromInt toY)
-            , Svg.Attributes.r "10"
-            , Svg.Attributes.fill "beige"
-            ]
-            []
-        ]
-
-
-viewPath2 : List Point -> Svg msg
-viewPath2 positions =
-    let
-        points : String
-        points =
-            positions
-                |> List.map Render.pointToPixel
-                |> List.map (\( q, r ) -> String.fromInt q ++ "," ++ String.fromInt r)
-                |> String.join " "
-    in
-    Svg.polyline
-        [ Svg.Attributes.points points
-        , Svg.Attributes.class "path"
-        ]
-        []
-
-
-viewPath : Dict Point Tile -> Point -> Point -> Svg msg
-viewPath tiles from to =
+viewPath : Bool -> Dict Point Tile -> Point -> Point -> Svg msg
+viewPath debug tiles from to =
     let
         path : Path
         path =
             Path.pathfind (canMove tiles) from to
-
-        debug : Bool
-        debug =
-            False
     in
     if debug then
-        Svg.g []
-            [ Svg.g []
-                (path.closed
-                    |> Dict.toList
-                    |> List.map (viewPathNode [ Svg.Attributes.class "closed" ])
-                )
-            , Svg.g []
-                (path.open
-                    |> Dict.toList
-                    |> List.map (viewPathNode [ Svg.Attributes.class "open" ])
-                )
-            , Svg.g []
-                (case path.path of
-                    Just validPath ->
-                        [ viewPath2 validPath ]
-
-                    Nothing ->
-                        []
-                )
-            ]
+        Render.viewDebugPath path
 
     else
         Svg.g []
             (case path.path of
                 Just validPath ->
-                    [ viewPath2 validPath ]
+                    [ Render.viewValidPath validPath ]
 
                 Nothing ->
                     []
@@ -354,7 +272,7 @@ viewGame model =
             , Svg.Lazy.lazy2 viewTiles 1 model.tiles
             , Svg.Lazy.lazy2 viewTiles 2 model.tiles
             , Svg.Lazy.lazy2 viewTiles 3 model.tiles
-            , viewPath model.tiles ( 0, 0 ) model.hoverTile
+            , viewPath model.viewPathDebug model.tiles ( 0, 0 ) model.hoverTile
             ]
         ]
 
@@ -391,6 +309,17 @@ viewEditor model =
                 , viewTilePresetButton model.editorSelectedTile (Just 1)
                 , viewTilePresetButton model.editorSelectedTile (Just 2)
                 , viewTilePresetButton model.editorSelectedTile (Just 3)
+                ]
+            , Html.div []
+                [ Html.h1 [] [ Html.text "Path debug" ]
+                , Html.input
+                    [ Html.Attributes.type_ "checkbox"
+                    , Html.Attributes.id "view-path-debug-checkbox"
+                    , Html.Attributes.checked model.viewPathDebug
+                    , Html.Events.onClick (ToggledViewPathDebug (not model.viewPathDebug))
+                    ]
+                    []
+                , Html.label [ Html.Attributes.for "view-path-debug-checkbox" ] [ Html.text "Show path debug" ]
                 ]
             ]
         , Render.svg
