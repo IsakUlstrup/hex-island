@@ -17,10 +17,6 @@ body
     display: flex
     height: 100vh
 
-.sidebar
-    flex: 20rem
-    padding: 1rem
-
 .game-svg
     background: lightblue
     width: 100%
@@ -30,19 +26,22 @@ body
 .tiles
     filter: url("#goo-filter")
 
-$tile-color: hsl(110, 75%, 75%)
+$tile-0-color: hsl(180, 30%, 87%)
+$tile-1-color: hsl(51, 62%, 87%)
+$tile-2-color: hsl(110, 75%, 75%)
+$tile-3-color: darken(desaturate($tile-2-color, 10), 10)
 
 .level-0
-    fill: hsl(180, 30%, 87%)
+    fill: $tile-0-color
 
 .level-1
-    fill: hsl(51, 62%, 87%)
+    fill: $tile-1-color
 
 .level-2
-    fill: $tile-color
+    fill: $tile-2-color
 
 .level-3
-    fill: darken(desaturate($tile-color, 10), 10)
+    fill: $tile-3-color
 
 .path
     stroke: beige
@@ -59,3 +58,32 @@ $tile-color: hsl(110, 75%, 75%)
         fill: green
     &.closed polygon
         fill: red
+
+// SIDEBAR
+.sidebar
+    flex: 20rem
+    padding: 1rem
+
+.tile-presets
+    display: flex
+    gap: 0.5rem
+
+.tile-preset
+    padding: 0.5rem 1rem
+    border: 0.2rem solid transparent
+    border-radius: 0.2rem
+
+    &.selected
+        border: 0.2rem solid cyan
+        transform: scale(1.2)
+
+.preset-0
+    background-color: $tile-0-color
+.preset-1
+    background-color: $tile-1-color
+.preset-2
+    background-color: $tile-2-color
+.preset-3
+    background-color: $tile-3-color
+.preset-x
+    background-color: #666

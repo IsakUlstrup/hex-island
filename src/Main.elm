@@ -56,7 +56,7 @@ type alias Model =
     , cameraPosition : ( Int, Int )
     , hoverTile : Point
     , editor : Bool
-    , editorSelectedTile : Tile
+    , editorSelectedTile : Maybe Tile
     , mouseDown : Bool
     }
 
@@ -83,7 +83,7 @@ init mapJson =
         ( 0, 0 )
         ( 0, 0 )
         False
-        1
+        Nothing
         False
     , Cmd.none
     )
@@ -96,7 +96,7 @@ init mapJson =
 type Msg
     = HoverHex Point
     | ClickedHex Point
-    | ClickedSidebarTile Tile
+    | ClickedSidebarTile (Maybe Tile)
     | KeyPressed String
     | MouseDownChanged Bool
 
@@ -109,7 +109,12 @@ update msg model =
                 let
                     newMap : Dict Point Tile
                     newMap =
-                        model.tiles |> Dict.insert pos model.editorSelectedTile
+                        case model.editorSelectedTile of
+                            Just t ->
+                                model.tiles |> Dict.insert pos t
+
+                            Nothing ->
+                                model.tiles |> Dict.remove pos
                 in
                 ( { model | tiles = newMap }
                 , Ports.storeMap (Codec.encodeMap tileEncoder newMap)
@@ -122,12 +127,17 @@ update msg model =
                 , Cmd.none
                 )
 
-        ClickedHex position ->
+        ClickedHex pos ->
             if model.editor then
                 let
                     newMap : Dict Point Tile
                     newMap =
-                        model.tiles |> Dict.insert position model.editorSelectedTile
+                        case model.editorSelectedTile of
+                            Just t ->
+                                model.tiles |> Dict.insert pos t
+
+                            Nothing ->
+                                model.tiles |> Dict.remove pos
                 in
                 ( { model | tiles = newMap }
                 , Ports.storeMap (Codec.encodeMap tileEncoder newMap)
@@ -348,17 +358,38 @@ viewGame model =
         ]
 
 
+viewTilePresetButton : Maybe Tile -> Maybe Tile -> Html Msg
+viewTilePresetButton selected tile =
+    let
+        label : String
+        label =
+            case tile of
+                Just t ->
+                    String.fromInt t
+
+                Nothing ->
+                    "x"
+    in
+    Html.button
+        [ Html.Attributes.class ("preset-" ++ label)
+        , Html.Attributes.class "tile-preset"
+        , Html.Attributes.classList [ ( "selected", selected == tile ) ]
+        , Html.Events.onClick (ClickedSidebarTile tile)
+        ]
+        [ Html.text label ]
+
+
 viewEditor : Model -> Html Msg
 viewEditor model =
     Html.div [ Html.Attributes.class "editor" ]
         [ Html.section [ Html.Attributes.class "sidebar" ]
             [ Html.h1 [] [ Html.text "Tile" ]
-            , Html.ul []
-                [ Html.li [ Html.Events.onClick (ClickedSidebarTile 0) ] [ Html.text "0" ]
-                , Html.li [ Html.Events.onClick (ClickedSidebarTile 1) ] [ Html.text "1" ]
-                , Html.li [ Html.Events.onClick (ClickedSidebarTile 2) ] [ Html.text "2" ]
-                , Html.li [ Html.Events.onClick (ClickedSidebarTile 3) ] [ Html.text "3" ]
-                , Html.li [ Html.Events.onClick (ClickedSidebarTile -1) ] [ Html.text "-1" ]
+            , Html.div [ Html.Attributes.class "tile-presets" ]
+                [ viewTilePresetButton model.editorSelectedTile Nothing
+                , viewTilePresetButton model.editorSelectedTile (Just 0)
+                , viewTilePresetButton model.editorSelectedTile (Just 1)
+                , viewTilePresetButton model.editorSelectedTile (Just 2)
+                , viewTilePresetButton model.editorSelectedTile (Just 3)
                 ]
             ]
         , Render.svg
