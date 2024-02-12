@@ -219,6 +219,11 @@ viewGhostTile position =
 
 viewTiles : Int -> Dict Point Tile -> Svg Msg
 viewTiles level tiles =
+    let
+        pointString : Point -> String
+        pointString point =
+            String.fromInt (Tuple.first point) ++ ", " ++ String.fromInt (Tuple.second point)
+    in
     Svg.Keyed.node "g"
         [ Svg.Attributes.class "tiles"
         , Svg.Attributes.class ("level-" ++ String.fromInt level)
@@ -226,7 +231,7 @@ viewTiles level tiles =
         (tiles
             |> Dict.toList
             |> List.filter (Tuple.second >> (\tile -> tile >= level))
-            |> List.map (\( pos, tile ) -> ( String.fromInt (Tuple.first pos) ++ ", " ++ String.fromInt (Tuple.second pos), viewTile [] ( pos, tile ) ))
+            |> List.map (\( pos, tile ) -> ( pointString pos, viewTile [] ( pos, tile ) ))
         )
 
 
