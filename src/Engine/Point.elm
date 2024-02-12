@@ -1,4 +1,4 @@
-module Engine.Point exposing (Point, add, distance, isValid, neighbours, subtract)
+module Engine.Point exposing (Point, add, distance, fromFloat, isValid, neighbours, subtract)
 
 {-| Axial coordinate
 -}
@@ -6,6 +6,33 @@ module Engine.Point exposing (Point, add, distance, isValid, neighbours, subtrac
 
 type alias Point =
     ( Int, Int )
+
+
+{-| Create a new point from float values, round to nearest valid point
+-}
+fromFloat : ( Float, Float ) -> Point
+fromFloat ( x, y ) =
+    let
+        z : Float
+        z =
+            -x - y
+
+        -- rounded point
+        ( rx, ry, rz ) =
+            ( round x, round y, round z )
+
+        -- diierence between input point and rounded point
+        ( dx, dy, dz ) =
+            ( abs (toFloat rx - x), abs (toFloat ry - y), abs (toFloat rz - z) )
+    in
+    if dx > dy && dx > dz then
+        ( -ry - rz, ry )
+
+    else if dy > dz then
+        ( rx, -rx - rz )
+
+    else
+        ( rx, ry )
 
 
 {-| Check if point is valid

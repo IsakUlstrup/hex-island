@@ -55,6 +55,7 @@ canMove tiles from to =
 type alias Model =
     { tiles : Dict Point Tile
     , cameraPosition : ( Int, Int )
+    , cameraZoom : Float
     , hoverTile : Point
     , editor : Bool
     , editorSelectedTile : Maybe Tile
@@ -83,6 +84,7 @@ init mapJson =
     ( Model
         initMap
         ( 0, 0 )
+        1
         ( 0, 0 )
         False
         Nothing
@@ -266,7 +268,8 @@ viewGame model =
     Render.svg
         [ Svg.Attributes.class "game-svg" ]
         [ Svg.defs [] [ gooFilter ]
-        , Render.camera model.cameraPosition
+        , Render.camera model.cameraZoom
+            model.cameraPosition
             [ Svg.Attributes.class "camera" ]
             [ Svg.Lazy.lazy2 viewTiles 0 model.tiles
             , Svg.Lazy.lazy2 viewTiles 1 model.tiles
@@ -328,7 +331,8 @@ viewEditor model =
             , Svg.Events.onMouseUp (MouseDownChanged False)
             ]
             [ Svg.defs [] [ gooFilter ]
-            , Render.camera model.cameraPosition
+            , Render.camera model.cameraZoom
+                model.cameraPosition
                 [ Svg.Attributes.class "camera" ]
                 [ Svg.Lazy.lazy (viewTiles 0) model.tiles
                 , Svg.Lazy.lazy (viewTiles 1) model.tiles
@@ -336,6 +340,14 @@ viewEditor model =
                 , Svg.Lazy.lazy (viewTiles 3) model.tiles
                 , Svg.g [] (List.map viewGhostTile (Render.square model.cameraPosition))
                 ]
+
+            -- -- show a circle at the center of the screen, for debuging
+            -- , Svg.circle
+            --     [ Svg.Attributes.cx "0"
+            --     , Svg.Attributes.cy "0"
+            --     , Svg.Attributes.r "10"
+            --     ]
+            --     []
             ]
         ]
 

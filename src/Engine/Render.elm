@@ -92,23 +92,23 @@ hexTransform position =
         )
 
 
-{-| Camera transform
--}
-cameraTransform : ( Int, Int ) -> Attribute msg
-cameraTransform ( x, y ) =
-    Svg.Attributes.style
-        ("transform: translate("
-            ++ String.fromInt -x
-            ++ "px, "
-            ++ String.fromInt -y
-            ++ "px)"
-        )
-
-
 {-| Camera element
 -}
-camera : ( Int, Int ) -> List (Attribute msg) -> List (Svg msg) -> Svg msg
-camera position attrs children =
+camera : Float -> ( Int, Int ) -> List (Attribute msg) -> List (Svg msg) -> Svg msg
+camera zoom position attrs children =
+    let
+        cameraTransform : ( Int, Int ) -> Attribute msg
+        cameraTransform ( x, y ) =
+            Svg.Attributes.style
+                ("transform: translate("
+                    ++ String.fromInt -x
+                    ++ "px, "
+                    ++ String.fromInt -y
+                    ++ "px) scale("
+                    ++ String.fromFloat zoom
+                    ++ ")"
+                )
+    in
     Svg.g (cameraTransform position :: attrs) children
 
 
@@ -128,13 +128,14 @@ square ( x, y ) =
     let
         center : Point
         center =
-            ( (2 / 3 * toFloat x) / hexSize |> round
-            , (-1 / 3 * toFloat x + sqrt 3 / 3 * toFloat y) / hexSize |> round
+            ( (2 / 3 * toFloat x) / hexSize
+            , (-1 / 3 * toFloat x + sqrt 3 / 3 * toFloat y) / hexSize
             )
+                |> Point.fromFloat
 
         radius : Int
         radius =
-            5
+            10
     in
     (List.range -radius radius
         |> List.concatMap
