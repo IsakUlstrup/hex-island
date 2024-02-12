@@ -16,6 +16,7 @@ import Ports
 import Svg exposing (Svg)
 import Svg.Attributes
 import Svg.Events
+import Svg.Keyed
 import Svg.Lazy
 
 
@@ -207,14 +208,14 @@ viewGhostTile position =
 
 viewTiles : Int -> Dict Point Tile -> Svg Msg
 viewTiles level tiles =
-    Svg.g
+    Svg.Keyed.node "g"
         [ Svg.Attributes.class "tiles"
         , Svg.Attributes.class ("level-" ++ String.fromInt level)
         ]
         (tiles
             |> Dict.toList
             |> List.filter (Tuple.second >> (\tile -> tile >= level))
-            |> List.map (viewTile [])
+            |> List.map (\( pos, tile ) -> ( String.fromInt (Tuple.first pos) ++ ", " ++ String.fromInt (Tuple.second pos), viewTile [] ( pos, tile ) ))
         )
 
 
