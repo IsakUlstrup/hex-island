@@ -266,22 +266,6 @@ gooFilter =
         ]
 
 
-viewGame : Model -> Html Msg
-viewGame model =
-    Render.svg
-        [ Svg.Attributes.class "game-svg" ]
-        [ Svg.defs [] [ gooFilter ]
-        , Render.camera model.camera
-            [ Svg.Attributes.class "camera" ]
-            [ Svg.Lazy.lazy2 viewTiles 0 model.tiles
-            , Svg.Lazy.lazy2 viewTiles 1 model.tiles
-            , Svg.Lazy.lazy2 viewTiles 2 model.tiles
-            , Svg.Lazy.lazy2 viewTiles 3 model.tiles
-            , viewPath model.viewPathDebug model.tiles ( 0, 0 ) model.hoverTile
-            ]
-        ]
-
-
 viewTilePresetButton : Maybe Tile -> Maybe Tile -> Html Msg
 viewTilePresetButton selected tile =
     let
@@ -303,30 +287,37 @@ viewTilePresetButton selected tile =
         [ Html.text label ]
 
 
-viewEditor : Model -> Html Msg
-viewEditor model =
-    Html.div [ Html.Attributes.class "editor" ]
-        [ Html.section [ Html.Attributes.class "sidebar" ]
-            [ Html.h1 [] [ Html.text "Tile" ]
-            , Html.div [ Html.Attributes.class "tile-presets" ]
-                [ viewTilePresetButton model.editorSelectedTile Nothing
-                , viewTilePresetButton model.editorSelectedTile (Just 0)
-                , viewTilePresetButton model.editorSelectedTile (Just 1)
-                , viewTilePresetButton model.editorSelectedTile (Just 2)
-                , viewTilePresetButton model.editorSelectedTile (Just 3)
-                ]
-            , Html.div []
-                [ Html.h1 [] [ Html.text "Path debug" ]
-                , Html.input
-                    [ Html.Attributes.type_ "checkbox"
-                    , Html.Attributes.id "view-path-debug-checkbox"
-                    , Html.Attributes.checked model.viewPathDebug
-                    , Html.Events.onClick (ToggledViewPathDebug (not model.viewPathDebug))
-                    ]
-                    []
-                , Html.label [ Html.Attributes.for "view-path-debug-checkbox" ] [ Html.text "Show path debug" ]
-                ]
+viewSidebar : List (Html.Attribute Msg) -> Bool -> Maybe Tile -> Html Msg
+viewSidebar attrs debug selectedPreset =
+    Html.section (Html.Attributes.class "sidebar" :: attrs)
+        [ Html.h1 [] [ Html.text "Tile" ]
+        , Html.div [ Html.Attributes.class "tile-presets" ]
+            [ viewTilePresetButton selectedPreset Nothing
+            , viewTilePresetButton selectedPreset (Just 0)
+            , viewTilePresetButton selectedPreset (Just 1)
+            , viewTilePresetButton selectedPreset (Just 2)
+            , viewTilePresetButton selectedPreset (Just 3)
             ]
+        , Html.div []
+            [ Html.h1 [] [ Html.text "Path debug" ]
+            , Html.input
+                [ Html.Attributes.type_ "checkbox"
+                , Html.Attributes.id "view-path-debug-checkbox"
+                , Html.Attributes.checked debug
+                , Html.Events.onClick (ToggledViewPathDebug (not debug))
+                ]
+                []
+            , Html.label [ Html.Attributes.for "view-path-debug-checkbox" ] [ Html.text "Show path debug" ]
+            ]
+        ]
+
+
+view : Model -> Html Msg
+view model =
+    main_
+        [ Html.Attributes.id "app"
+        ]
+        [ viewSidebar [ Html.Attributes.classList [ ( "show-sidebar", model.editor ) ] ] model.viewPathDebug model.editorSelectedTile
         , Render.svg
             [ Svg.Attributes.class "game-svg"
             , Svg.Events.onMouseDown (MouseDownChanged True)
@@ -335,32 +326,19 @@ viewEditor model =
             [ Svg.defs [] [ gooFilter ]
             , Render.camera model.camera
                 [ Svg.Attributes.class "camera" ]
-                [ Svg.Lazy.lazy (viewTiles 0) model.tiles
-                , Svg.Lazy.lazy (viewTiles 1) model.tiles
-                , Svg.Lazy.lazy (viewTiles 2) model.tiles
-                , Svg.Lazy.lazy (viewTiles 3) model.tiles
-                , Svg.g [] (List.map viewGhostTile (Render.square model.camera))
+                [ Svg.Lazy.lazy2 viewTiles 0 model.tiles
+                , Svg.Lazy.lazy2 viewTiles 1 model.tiles
+                , Svg.Lazy.lazy2 viewTiles 2 model.tiles
+                , Svg.Lazy.lazy2 viewTiles 3 model.tiles
+                , Svg.g []
+                    (if model.editor then
+                        List.map viewGhostTile (Render.square model.camera)
+
+                     else
+                        [ viewPath model.viewPathDebug model.tiles ( 0, 0 ) model.hoverTile ]
+                    )
                 ]
-
-            -- -- show a circle at the center of the screen, for debuging
-            -- , Svg.circle
-            --     [ Svg.Attributes.cx "0"
-            --     , Svg.Attributes.cy "0"
-            --     , Svg.Attributes.r "10"
-            --     ]
-            --     []
             ]
-        ]
-
-
-view : Model -> Html Msg
-view model =
-    main_ [ Html.Attributes.id "app" ]
-        [ if model.editor then
-            viewEditor model
-
-          else
-            viewGame model
         ]
 
 
