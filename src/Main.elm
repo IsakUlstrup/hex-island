@@ -6,7 +6,7 @@ import Dict exposing (Dict)
 import Engine.Codec as Codec
 import Engine.Path as Path exposing (Path)
 import Engine.Point exposing (Point)
-import Engine.Render as Render
+import Engine.Render as Render exposing (Camera)
 import Html exposing (Html, main_)
 import Html.Attributes
 import Html.Events
@@ -54,8 +54,7 @@ canMove tiles from to =
 
 type alias Model =
     { tiles : Dict Point Tile
-    , cameraPosition : ( Int, Int )
-    , cameraZoom : Float
+    , camera : Camera
     , hoverTile : Point
     , editor : Bool
     , editorSelectedTile : Maybe Tile
@@ -64,27 +63,21 @@ type alias Model =
     }
 
 
+{-| Parse map from json string, return default map on parse error
+-}
+initMap : Maybe String -> Dict Point Tile
+initMap mapJson =
+    mapJson
+        |> Maybe.andThen
+            (Codec.decodeMap tileDecoder >> Result.toMaybe)
+        |> Maybe.withDefault (Dict.singleton ( 0, 0 ) 0)
+
+
 init : Maybe String -> ( Model, Cmd Msg )
 init mapJson =
-    let
-        initMap : Dict Point Tile
-        initMap =
-            case mapJson of
-                Just map ->
-                    case Codec.decodeMap tileDecoder map of
-                        Ok validMap ->
-                            validMap
-
-                        Err _ ->
-                            Dict.empty
-
-                Nothing ->
-                    Dict.empty
-    in
     ( Model
-        initMap
-        ( 0, 0 )
-        1
+        (initMap mapJson)
+        Render.newCamera
         ( 0, 0 )
         False
         Nothing
@@ -160,19 +153,29 @@ update msg model =
         KeyPressed key ->
             case key of
                 " " ->
-                    ( { model | editor = not model.editor }, Cmd.none )
+                    ( { model | editor = not model.editor }
+                    , Cmd.none
+                    )
 
                 "a" ->
-                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x - 100) model.cameraPosition }, Cmd.none )
+                    ( { model | camera = Render.moveCameraX -100 model.camera }
+                    , Cmd.none
+                    )
 
                 "d" ->
-                    ( { model | cameraPosition = Tuple.mapFirst (\x -> x + 100) model.cameraPosition }, Cmd.none )
+                    ( { model | camera = Render.moveCameraX 100 model.camera }
+                    , Cmd.none
+                    )
 
                 "w" ->
-                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y - 100) model.cameraPosition }, Cmd.none )
+                    ( { model | camera = Render.moveCameraY -100 model.camera }
+                    , Cmd.none
+                    )
 
                 "s" ->
-                    ( { model | cameraPosition = Tuple.mapSecond (\y -> y + 100) model.cameraPosition }, Cmd.none )
+                    ( { model | camera = Render.moveCameraY 100 model.camera }
+                    , Cmd.none
+                    )
 
                 _ ->
                     ( model, Cmd.none )
@@ -268,8 +271,7 @@ viewGame model =
     Render.svg
         [ Svg.Attributes.class "game-svg" ]
         [ Svg.defs [] [ gooFilter ]
-        , Render.camera model.cameraZoom
-            model.cameraPosition
+        , Render.camera model.camera
             [ Svg.Attributes.class "camera" ]
             [ Svg.Lazy.lazy2 viewTiles 0 model.tiles
             , Svg.Lazy.lazy2 viewTiles 1 model.tiles
@@ -331,14 +333,13 @@ viewEditor model =
             , Svg.Events.onMouseUp (MouseDownChanged False)
             ]
             [ Svg.defs [] [ gooFilter ]
-            , Render.camera model.cameraZoom
-                model.cameraPosition
+            , Render.camera model.camera
                 [ Svg.Attributes.class "camera" ]
                 [ Svg.Lazy.lazy (viewTiles 0) model.tiles
                 , Svg.Lazy.lazy (viewTiles 1) model.tiles
                 , Svg.Lazy.lazy (viewTiles 2) model.tiles
                 , Svg.Lazy.lazy (viewTiles 3) model.tiles
-                , Svg.g [] (List.map viewGhostTile (Render.square model.cameraPosition))
+                , Svg.g [] (List.map viewGhostTile (Render.square model.camera))
                 ]
 
             -- -- show a circle at the center of the screen, for debuging

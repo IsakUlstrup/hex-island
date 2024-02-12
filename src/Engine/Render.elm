@@ -1,6 +1,10 @@
 module Engine.Render exposing
-    ( camera
+    ( Camera
+    , camera
     , hexTransform
+    , moveCameraX
+    , moveCameraY
+    , newCamera
     , square
     , svg
     , viewDebugPath
@@ -14,6 +18,32 @@ import Engine.Point as Point exposing (Point)
 import Html exposing (Html)
 import Svg exposing (Attribute, Svg)
 import Svg.Attributes
+
+
+
+-- CAMERA
+
+
+type alias Camera =
+    { x : Float
+    , y : Float
+    , zoom : Float
+    }
+
+
+newCamera : Camera
+newCamera =
+    Camera 0 0 1
+
+
+moveCameraX : Float -> Camera -> Camera
+moveCameraX delta cam =
+    { cam | x = cam.x + delta }
+
+
+moveCameraY : Float -> Camera -> Camera
+moveCameraY delta cam =
+    { cam | y = cam.y + delta }
 
 
 {-| Hex size constant
@@ -94,22 +124,22 @@ hexTransform position =
 
 {-| Camera element
 -}
-camera : Float -> ( Int, Int ) -> List (Attribute msg) -> List (Svg msg) -> Svg msg
-camera zoom position attrs children =
+camera : Camera -> List (Attribute msg) -> List (Svg msg) -> Svg msg
+camera cam attrs children =
     let
-        cameraTransform : ( Int, Int ) -> Attribute msg
-        cameraTransform ( x, y ) =
+        cameraTransform : Attribute msg
+        cameraTransform =
             Svg.Attributes.style
                 ("transform: translate("
-                    ++ String.fromInt -x
+                    ++ String.fromFloat -cam.x
                     ++ "px, "
-                    ++ String.fromInt -y
+                    ++ String.fromFloat -cam.y
                     ++ "px) scale("
-                    ++ String.fromFloat zoom
+                    ++ String.fromFloat cam.zoom
                     ++ ")"
                 )
     in
-    Svg.g (cameraTransform position :: attrs) children
+    Svg.g (cameraTransform :: attrs) children
 
 
 svg : List (Attribute msg) -> List (Svg msg) -> Html msg
@@ -123,13 +153,13 @@ svg attrs children =
         children
 
 
-square : ( Int, Int ) -> List Point
-square ( x, y ) =
+square : Camera -> List Point
+square { x, y } =
     let
         center : Point
         center =
-            ( (2 / 3 * toFloat x) / hexSize
-            , (-1 / 3 * toFloat x + sqrt 3 / 3 * toFloat y) / hexSize
+            ( (2 / 3 * x) / hexSize
+            , (-1 / 3 * x + sqrt 3 / 3 * y) / hexSize
             )
                 |> Point.fromFloat
 
