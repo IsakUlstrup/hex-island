@@ -197,28 +197,15 @@ viewGhostTile position =
 
 viewTiles : Int -> Dict Point Tile -> Svg Msg
 viewTiles level tiles =
-    if level == 0 then
-        Svg.g
-            [ Svg.Attributes.class "tiles"
-            , Svg.Attributes.style "opacity: 0.5"
-            , Svg.Attributes.class ("level-" ++ String.fromInt level)
-            ]
-            (tiles
-                |> Dict.toList
-                |> List.filter (\( _, tile ) -> tile >= level)
-                |> List.map (viewTile [])
-            )
-
-    else
-        Svg.g
-            [ Svg.Attributes.class "tiles"
-            , Svg.Attributes.class ("level-" ++ String.fromInt level)
-            ]
-            (tiles
-                |> Dict.toList
-                |> List.filter (\( _, tile ) -> tile >= level)
-                |> List.map (viewTile [])
-            )
+    Svg.g
+        [ Svg.Attributes.class "tiles"
+        , Svg.Attributes.class ("level-" ++ String.fromInt level)
+        ]
+        (tiles
+            |> Dict.toList
+            |> List.filter (Tuple.second >> (\tile -> tile >= level))
+            |> List.map (viewTile [])
+        )
 
 
 viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
@@ -281,11 +268,7 @@ viewPath2 positions =
     in
     Svg.polyline
         [ Svg.Attributes.points points
-        , Svg.Attributes.stroke "beige"
-        , Svg.Attributes.fill "none"
-        , Svg.Attributes.strokeWidth "20"
-        , Svg.Attributes.strokeLinecap "round"
-        , Svg.Attributes.strokeLinejoin "round"
+        , Svg.Attributes.class "path"
         ]
         []
 

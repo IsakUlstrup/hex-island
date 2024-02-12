@@ -33,16 +33,23 @@ body
 $tile-color: hsl(110, 75%, 75%)
 
 .level-0
-    fill: hsl(51, 62%, 95%)
+    fill: hsl(180, 30%, 87%)
 
 .level-1
     fill: hsl(51, 62%, 87%)
 
 .level-2
-    fill: darken($tile-color, 0)
+    fill: $tile-color
 
 .level-3
     fill: darken(desaturate($tile-color, 10), 10)
+
+.path
+    stroke: beige
+    fill: none
+    stroke-width: 20
+    stroke-linecap: round
+    stroke-linejoin: round
 
 .path-node
     pointer-events: none
