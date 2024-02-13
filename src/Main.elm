@@ -3,9 +3,10 @@ module Main exposing (Model, Msg, Tile, main)
 import Browser
 import Browser.Events
 import Dict exposing (Dict)
+import Editor exposing (EditorState, Tool(..))
 import Engine.Codec as Codec
 import Engine.Path as Path exposing (Path)
-import Engine.Point exposing (Point)
+import Engine.Point as Point exposing (Point)
 import Engine.Render as Render exposing (Camera)
 import Html exposing (Html, main_)
 import Html.Attributes
@@ -48,6 +49,41 @@ canMove tiles from to =
             False
 
 
+applyTool : Tool -> Point -> Dict Point Tile -> Dict Point Tile
+applyTool tool position tiles =
+    case tool of
+        Raise magnitude ->
+            Dict.update position
+                (\t ->
+                    case t of
+                        Just level ->
+                            Just (level + magnitude |> min magnitude)
+
+                        Nothing ->
+                            Just (-1 + magnitude)
+                )
+                tiles
+
+        Lower magnitude ->
+            Dict.update position
+                (Maybe.andThen
+                    (\level ->
+                        if (level - magnitude) < 0 then
+                            Nothing
+
+                        else
+                            Just (level - magnitude |> max 0)
+                    )
+                )
+                tiles
+
+        Level height ->
+            Dict.insert position height tiles
+
+        Pan ->
+            tiles
+
+
 
 -- MODEL
 
@@ -56,8 +92,7 @@ type alias Model =
     { tiles : Dict Point Tile
     , camera : Camera
     , hoverTile : Point
-    , editor : Bool
-    , editorSelectedTile : Maybe Tile
+    , editor : EditorState
     , mouseDown : Bool
     , viewPathDebug : Bool
     }
@@ -79,8 +114,7 @@ init mapJson =
         (initMap mapJson)
         (Render.newCamera |> Render.zoomCamera -0.3)
         ( 0, 0 )
-        False
-        Nothing
+        Editor.init
         False
         False
     , Cmd.none
@@ -94,7 +128,7 @@ init mapJson =
 type Msg
     = HoverHex Point
     | ClickedHex Point
-    | ClickedSidebarTile (Maybe Tile)
+    | ClickedSidebarTool Tool
     | KeyPressed String
     | MouseDownChanged Bool
     | ToggledViewPathDebug Bool
@@ -104,18 +138,16 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         HoverHex pos ->
-            if model.editor && model.mouseDown then
+            if model.editor.enabled && model.mouseDown then
                 let
                     newMap : Dict Point Tile
                     newMap =
-                        case model.editorSelectedTile of
-                            Just t ->
-                                model.tiles |> Dict.insert pos t
-
-                            Nothing ->
-                                model.tiles |> Dict.remove pos
+                        List.foldl (applyTool model.editor.selectedTool) model.tiles (pos :: Point.neighbours pos)
                 in
-                ( { model | tiles = newMap }
+                ( { model
+                    | tiles = newMap
+                    , hoverTile = pos
+                  }
                 , Ports.storeMap (Codec.encodeMap tileEncoder newMap)
                 )
 
@@ -127,16 +159,11 @@ update msg model =
                 )
 
         ClickedHex pos ->
-            if model.editor then
+            if model.editor.enabled then
                 let
                     newMap : Dict Point Tile
                     newMap =
-                        case model.editorSelectedTile of
-                            Just t ->
-                                model.tiles |> Dict.insert pos t
-
-                            Nothing ->
-                                model.tiles |> Dict.remove pos
+                        List.foldl (applyTool model.editor.selectedTool) model.tiles (pos :: Point.neighbours pos)
                 in
                 ( { model | tiles = newMap }
                 , Ports.storeMap (Codec.encodeMap tileEncoder newMap)
@@ -145,15 +172,15 @@ update msg model =
             else
                 ( model, Cmd.none )
 
-        ClickedSidebarTile tile ->
-            ( { model | editorSelectedTile = tile }
+        ClickedSidebarTool tool ->
+            ( { model | editor = Editor.setTool tool model.editor }
             , Cmd.none
             )
 
         KeyPressed key ->
             case key of
                 " " ->
-                    ( { model | editor = not model.editor }
+                    ( { model | editor = Editor.toggle model.editor }
                     , Cmd.none
                     )
 
@@ -204,8 +231,17 @@ viewTile attrs ( position, _ ) =
         ]
 
 
-viewGhostTile : Point -> Svg Msg
-viewGhostTile position =
+svgClassList : List ( String, Bool ) -> Svg.Attribute msg
+svgClassList classes =
+    classes
+        |> List.filter Tuple.second
+        |> List.map Tuple.first
+        |> String.join " "
+        |> Svg.Attributes.class
+
+
+viewGhostTile : List Point -> Point -> Svg Msg
+viewGhostTile highlight position =
     Render.viewHex
         [ Render.hexTransform position
         , Svg.Events.onMouseOver (HoverHex position)
@@ -214,6 +250,7 @@ viewGhostTile position =
         , Svg.Attributes.fill "transparent"
         , Svg.Attributes.stroke "beige"
         , Svg.Attributes.strokeWidth "1"
+        , svgClassList [ ( "highlight", List.member position highlight ) ]
         ]
 
 
@@ -271,49 +308,42 @@ gooFilter =
         ]
 
 
-viewTilePresetButton : Maybe Tile -> Maybe Tile -> Html Msg
-viewTilePresetButton selected tile =
-    let
-        label : String
-        label =
-            case tile of
-                Just t ->
-                    String.fromInt t
-
-                Nothing ->
-                    "x"
-    in
+viewToolPresetButton : Tool -> Tool -> Html Msg
+viewToolPresetButton selected tool =
     Html.button
-        [ Html.Attributes.class ("preset-" ++ label)
-        , Html.Attributes.class "tile-preset"
-        , Html.Attributes.classList [ ( "selected", selected == tile ) ]
-        , Html.Events.onClick (ClickedSidebarTile tile)
+        [ Html.Attributes.class ("preset-" ++ Editor.toolToString tool)
+        , Html.Attributes.class "tool-preset"
+        , Html.Attributes.classList [ ( "selected", selected == tool ) ]
+        , Html.Events.onClick (ClickedSidebarTool tool)
         ]
-        [ Html.text label ]
+        [ Html.text (Editor.toolToString tool) ]
 
 
-viewSidebar : List (Html.Attribute Msg) -> Bool -> Maybe Tile -> Html Msg
-viewSidebar attrs debug selectedPreset =
-    Html.section (Html.Attributes.class "sidebar" :: attrs)
-        [ Html.h1 [] [ Html.text "Tile" ]
-        , Html.div [ Html.Attributes.class "tile-presets" ]
-            [ viewTilePresetButton selectedPreset Nothing
-            , viewTilePresetButton selectedPreset (Just 0)
-            , viewTilePresetButton selectedPreset (Just 1)
-            , viewTilePresetButton selectedPreset (Just 2)
-            , viewTilePresetButton selectedPreset (Just 3)
+viewEditor : Editor.EditorState -> Html Msg
+viewEditor editor =
+    Html.section
+        [ Html.Attributes.class "sidebar"
+        , Html.Attributes.classList [ ( "show-sidebar", editor.enabled ) ]
+        ]
+        [ Html.h1 [] [ Html.text "Tool" ]
+        , Html.div [ Html.Attributes.class "tool-presets" ]
+            [ viewToolPresetButton editor.selectedTool (Editor.Raise 1)
+            , viewToolPresetButton editor.selectedTool (Editor.Lower 1)
+            , viewToolPresetButton editor.selectedTool (Editor.Level 1)
+            , viewToolPresetButton editor.selectedTool Editor.Pan
             ]
-        , Html.div []
-            [ Html.h1 [] [ Html.text "Path debug" ]
-            , Html.input
-                [ Html.Attributes.type_ "checkbox"
-                , Html.Attributes.id "view-path-debug-checkbox"
-                , Html.Attributes.checked debug
-                , Html.Events.onClick (ToggledViewPathDebug (not debug))
-                ]
-                []
-            , Html.label [ Html.Attributes.for "view-path-debug-checkbox" ] [ Html.text "Show path debug" ]
-            ]
+
+        -- , Html.div []
+        --     [ Html.h1 [] [ Html.text "Path debug" ]
+        --     , Html.input
+        --         [ Html.Attributes.type_ "checkbox"
+        --         , Html.Attributes.id "view-path-debug-checkbox"
+        --         , Html.Attributes.checked debug
+        --         , Html.Events.onClick (ToggledViewPathDebug (not debug))
+        --         ]
+        --         []
+        --     , Html.label [ Html.Attributes.for "view-path-debug-checkbox" ] [ Html.text "Show path debug" ]
+        --     ]
         ]
 
 
@@ -322,7 +352,7 @@ view model =
     main_
         [ Html.Attributes.id "app"
         ]
-        [ viewSidebar [ Html.Attributes.classList [ ( "show-sidebar", model.editor ) ] ] model.viewPathDebug model.editorSelectedTile
+        [ viewEditor model.editor
         , Render.svg
             [ Svg.Attributes.class "game-svg"
             , Svg.Events.onMouseDown (MouseDownChanged True)
@@ -336,8 +366,8 @@ view model =
                 , Svg.Lazy.lazy2 viewTiles 2 model.tiles
                 , Svg.Lazy.lazy2 viewTiles 3 model.tiles
                 , Svg.g []
-                    (if model.editor then
-                        List.map viewGhostTile (Render.square model.camera)
+                    (if model.editor.enabled then
+                        List.map (viewGhostTile (model.hoverTile :: Point.neighbours model.hoverTile)) (Render.square model.camera)
 
                      else
                         [ viewPath model.viewPathDebug model.tiles ( 0, 0 ) model.hoverTile ]
