@@ -77,7 +77,7 @@ init : Maybe String -> ( Model, Cmd Msg )
 init mapJson =
     ( Model
         (initMap mapJson)
-        Render.newCamera
+        (Render.newCamera |> Render.zoomCamera -0.3)
         ( 0, 0 )
         False
         Nothing
@@ -343,6 +343,9 @@ view model =
                         [ viewPath model.viewPathDebug model.tiles ( 0, 0 ) model.hoverTile ]
                     )
                 ]
+
+            -- Center screen indicator
+            -- , Svg.circle [ Svg.Attributes.cx "0", Svg.Attributes.cy "0", Svg.Attributes.r "10" ] []
             ]
         ]
 

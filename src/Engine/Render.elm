@@ -10,6 +10,7 @@ module Engine.Render exposing
     , viewDebugPath
     , viewHex
     , viewValidPath
+    , zoomCamera
     )
 
 import Dict
@@ -44,6 +45,11 @@ moveCameraX delta cam =
 moveCameraY : Float -> Camera -> Camera
 moveCameraY delta cam =
     { cam | y = cam.y + delta }
+
+
+zoomCamera : Float -> Camera -> Camera
+zoomCamera delta cam =
+    { cam | zoom = cam.zoom + delta |> clamp 0.1 3 }
 
 
 {-| Hex size constant
@@ -154,18 +160,18 @@ svg attrs children =
 
 
 square : Camera -> List Point
-square { x, y } =
+square { x, y, zoom } =
     let
         center : Point
         center =
-            ( (2 / 3 * x) / hexSize
-            , (-1 / 3 * x + sqrt 3 / 3 * y) / hexSize
+            ( ((2 / 3 * x) / hexSize) / zoom
+            , ((-1 / 3 * x + sqrt 3 / 3 * y) / hexSize) / zoom
             )
                 |> Point.fromFloat
 
         radius : Int
         radius =
-            10
+            5 / zoom |> round
     in
     (List.range -radius radius
         |> List.concatMap
