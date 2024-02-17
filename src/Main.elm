@@ -15,7 +15,7 @@ import Html.Events
 import Json.Decode exposing (Decoder)
 import Json.Encode
 import Ports
-import Random
+import Random exposing (Seed)
 import Svg exposing (Svg)
 import Svg.Attributes
 import Svg.Events
@@ -97,55 +97,67 @@ type alias Model =
     , editor : EditorState
     , mouseDown : Bool
     , viewPathDebug : Bool
+    , seed : Seed
     }
 
 
-{-| Parse map from json string, return default map on parse error
--}
-initMap : Maybe String -> Dict Point Tile
-initMap mapJson =
-    mapJson
-        |> Maybe.andThen
-            (Codec.decodeMap tileDecoder >> Result.toMaybe)
-        |> Maybe.withDefault randomMap
-
-
-randomMap : Dict Point Tile
-randomMap =
+randomMap : Seed -> ( Dict Point Tile, Seed )
+randomMap seed =
     let
         radius =
-            25
+            35
+
+        ( map, newSeed ) =
+            Random.step (Noise.generateSquare radius) seed
     in
-    Random.step (Noise.generateSquare radius) (Random.initialSeed 41113)
-        |> Tuple.first
+    ( map
         |> List.filterMap
             (\( pos, val ) ->
                 let
                     distanceRatio =
-                        (Point.distance ( 0, 0 ) pos |> toFloat) / radius
+                        ((Point.distance ( 0, 0 ) pos |> toFloat) ^ 2) / radius
 
                     adjustedVal =
-                        (val * 4) - (distanceRatio * 3)
+                        (val * 6) - (distanceRatio * 0.25)
                 in
-                if adjustedVal < 0 then
+                if adjustedVal < 0.1 then
                     Nothing
 
                 else
                     Just ( pos, round (clamp 0 3 adjustedVal) )
             )
         |> Dict.fromList
+    , newSeed
+    )
 
 
 init : Maybe String -> ( Model, Cmd Msg )
 init mapJson =
+    let
+        initSeed =
+            Random.initialSeed 41113
+
+        parseMap =
+            mapJson
+                |> Maybe.andThen
+                    (Codec.decodeMap tileDecoder >> Result.toMaybe)
+
+        ( map, seed ) =
+            case parseMap of
+                Just m ->
+                    ( m, initSeed )
+
+                Nothing ->
+                    randomMap initSeed
+    in
     ( Model
-        -- (initMap mapJson)
-        randomMap
+        map
         (Render.newCamera |> Render.zoomCamera -0.8)
         ( 0, 0 )
         Editor.init
         False
         False
+        seed
     , Cmd.none
     )
 
@@ -161,6 +173,7 @@ type Msg
     | KeyPressed String
     | MouseDownChanged Bool
     | ToggledViewPathDebug Bool
+    | ClickedNewMap
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -241,6 +254,13 @@ update msg model =
 
         ToggledViewPathDebug flag ->
             ( { model | viewPathDebug = flag }, Cmd.none )
+
+        ClickedNewMap ->
+            let
+                ( newMap, newSeed ) =
+                    randomMap model.seed
+            in
+            ( { model | tiles = newMap, seed = newSeed }, Ports.storeMap (Codec.encodeMap tileEncoder newMap) )
 
 
 
@@ -361,6 +381,7 @@ viewEditor editor =
             , viewToolPresetButton editor.selectedTool (Editor.Level 1)
             , viewToolPresetButton editor.selectedTool Editor.Pan
             ]
+        , Html.button [ Html.Events.onClick ClickedNewMap ] [ Html.text "new map" ]
 
         -- , Html.div []
         --     [ Html.h1 [] [ Html.text "Path debug" ]
