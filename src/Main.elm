@@ -114,9 +114,9 @@ randomMap : Dict Point Tile
 randomMap =
     let
         radius =
-            10
+            25
     in
-    Random.step (Noise.generateSquare radius) (Random.initialSeed 413)
+    Random.step (Noise.generateSquare radius) (Random.initialSeed 41113)
         |> Tuple.first
         |> List.filterMap
             (\( pos, val ) ->
@@ -125,9 +125,9 @@ randomMap =
                         (Point.distance ( 0, 0 ) pos |> toFloat) / radius
 
                     adjustedVal =
-                        val * 3
+                        (val * 4) - (distanceRatio * 3)
                 in
-                if adjustedVal < 0.1 then
+                if adjustedVal < 0 then
                     Nothing
 
                 else
@@ -139,8 +139,9 @@ randomMap =
 init : Maybe String -> ( Model, Cmd Msg )
 init mapJson =
     ( Model
-        (initMap mapJson)
-        (Render.newCamera |> Render.zoomCamera -0.2)
+        -- (initMap mapJson)
+        randomMap
+        (Render.newCamera |> Render.zoomCamera -0.8)
         ( 0, 0 )
         Editor.init
         False
@@ -389,11 +390,10 @@ view model =
             [ Svg.defs [] [ gooFilter ]
             , Render.camera model.camera
                 [ Svg.Attributes.class "camera" ]
-                [ -- Svg.Lazy.lazy2 viewTiles 0 model.tiles
-                  Svg.Lazy.lazy2 viewTiles 1 model.tiles
+                [ Svg.Lazy.lazy2 viewTiles 0 model.tiles
+                , Svg.Lazy.lazy2 viewTiles 1 model.tiles
                 , Svg.Lazy.lazy2 viewTiles 2 model.tiles
-
-                -- , Svg.Lazy.lazy2 viewTiles 3 model.tiles
+                , Svg.Lazy.lazy2 viewTiles 3 model.tiles
                 , Svg.g []
                     (if model.editor.enabled then
                         List.map (viewGhostTile (model.hoverTile :: Point.neighbours model.hoverTile)) (Render.square model.camera)
