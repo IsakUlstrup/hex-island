@@ -5,6 +5,7 @@ module Engine.Render exposing
     , moveCameraX
     , moveCameraY
     , newCamera
+    , pointToPixel
     , square
     , svg
     , viewDebugPath
@@ -64,10 +65,10 @@ hexSize =
 
 {-| Get the center of a given point in screen coordinates
 -}
-pointToPixel : Point -> ( Int, Int )
+pointToPixel : Point -> ( Float, Float )
 pointToPixel ( q, r ) =
-    ( hexSize * (3 / 2 * toFloat q) |> round
-    , hexSize * (sqrt 3 / 2 * toFloat q + sqrt 3 * toFloat r) |> round
+    ( hexSize * (3 / 2 * toFloat q)
+    , hexSize * (sqrt 3 / 2 * toFloat q + sqrt 3 * toFloat r)
     )
 
 
@@ -117,7 +118,7 @@ hexTransform : Point -> Attribute msg
 hexTransform position =
     let
         ( x, y ) =
-            pointToPixel position
+            pointToPixel position |> Tuple.mapBoth round round
     in
     Svg.Attributes.style
         ("transform: translate("
@@ -192,7 +193,7 @@ viewPathNode : List (Svg.Attribute msg) -> ( Point, Node ) -> Svg msg
 viewPathNode attrs ( pos, node ) =
     let
         ( toX, toY ) =
-            pointToPixel (Point.subtract node.parent pos)
+            pointToPixel (Point.subtract node.parent pos) |> Tuple.mapBoth round round
     in
     Svg.g
         ([ hexTransform pos
@@ -242,7 +243,7 @@ viewValidPath positions =
         points : String
         points =
             positions
-                |> List.map pointToPixel
+                |> List.map (pointToPixel >> Tuple.mapBoth round round)
                 |> List.map (\( q, r ) -> String.fromInt q ++ "," ++ String.fromInt r)
                 |> String.join " "
     in

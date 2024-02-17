@@ -5,6 +5,7 @@ import Browser.Events
 import Dict exposing (Dict)
 import Editor exposing (EditorState, Tool(..))
 import Engine.Codec as Codec
+import Engine.Noise as Noise
 import Engine.Path as Path exposing (Path)
 import Engine.Point as Point exposing (Point)
 import Engine.Render as Render exposing (Camera)
@@ -14,6 +15,7 @@ import Html.Events
 import Json.Decode exposing (Decoder)
 import Json.Encode
 import Ports
+import Random
 import Svg exposing (Svg)
 import Svg.Attributes
 import Svg.Events
@@ -105,14 +107,40 @@ initMap mapJson =
     mapJson
         |> Maybe.andThen
             (Codec.decodeMap tileDecoder >> Result.toMaybe)
-        |> Maybe.withDefault (Dict.singleton ( 0, 0 ) 0)
+        |> Maybe.withDefault randomMap
+
+
+randomMap : Dict Point Tile
+randomMap =
+    let
+        radius =
+            10
+    in
+    Random.step (Noise.generateSquare radius) (Random.initialSeed 413)
+        |> Tuple.first
+        |> List.filterMap
+            (\( pos, val ) ->
+                let
+                    distanceRatio =
+                        (Point.distance ( 0, 0 ) pos |> toFloat) / radius
+
+                    adjustedVal =
+                        val * 3
+                in
+                if adjustedVal < 0.1 then
+                    Nothing
+
+                else
+                    Just ( pos, round (clamp 0 3 adjustedVal) )
+            )
+        |> Dict.fromList
 
 
 init : Maybe String -> ( Model, Cmd Msg )
 init mapJson =
     ( Model
         (initMap mapJson)
-        (Render.newCamera |> Render.zoomCamera -0.3)
+        (Render.newCamera |> Render.zoomCamera -0.2)
         ( 0, 0 )
         Editor.init
         False
@@ -361,10 +389,11 @@ view model =
             [ Svg.defs [] [ gooFilter ]
             , Render.camera model.camera
                 [ Svg.Attributes.class "camera" ]
-                [ Svg.Lazy.lazy2 viewTiles 0 model.tiles
-                , Svg.Lazy.lazy2 viewTiles 1 model.tiles
+                [ -- Svg.Lazy.lazy2 viewTiles 0 model.tiles
+                  Svg.Lazy.lazy2 viewTiles 1 model.tiles
                 , Svg.Lazy.lazy2 viewTiles 2 model.tiles
-                , Svg.Lazy.lazy2 viewTiles 3 model.tiles
+
+                -- , Svg.Lazy.lazy2 viewTiles 3 model.tiles
                 , Svg.g []
                     (if model.editor.enabled then
                         List.map (viewGhostTile (model.hoverTile :: Point.neighbours model.hoverTile)) (Render.square model.camera)
