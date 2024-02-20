@@ -105,20 +105,17 @@ randomMap : Seed -> ( Dict Point Tile, Seed )
 randomMap seed =
     let
         radius =
-            35
+            10
 
         ( map, newSeed ) =
-            Random.step (Noise.generateSquare radius) seed
+            Random.step (Noise.generateCircle radius) seed
     in
     ( map
         |> List.filterMap
             (\( pos, val ) ->
                 let
-                    distanceRatio =
-                        ((Point.distance ( 0, 0 ) pos |> toFloat) ^ 2) / radius
-
                     adjustedVal =
-                        (val * 6) - (distanceRatio * 0.25)
+                        val * 3
                 in
                 if adjustedVal < 0.1 then
                     Nothing

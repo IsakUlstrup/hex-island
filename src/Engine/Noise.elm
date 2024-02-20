@@ -1,4 +1,4 @@
-module Engine.Noise exposing (Vector2, generateSquare, noiseList)
+module Engine.Noise exposing (Vector2, generateCircle, noiseList)
 
 import Engine.Point as Point exposing (Point)
 import Engine.Render as Render
@@ -115,20 +115,8 @@ noiseList positions =
         Random.independentSeed
 
 
-square : Int -> List Point
-square radius =
-    (List.range -radius radius
-        |> List.concatMap
-            (\r ->
-                List.range -radius radius
-                    |> List.map (\q -> ( q, r ))
-            )
-    )
-        |> List.filter Point.isValid
-
-
-generateSquare : Int -> Generator (List ( Point, Float ))
-generateSquare radius =
+generateCircle : Int -> Generator (List ( Point, Float ))
+generateCircle radius =
     Random.andThen
-        (\seed -> Random.constant (List.map (\pos -> ( pos, noise seed pos )) (square radius)))
+        (\seed -> Random.constant (List.map (\pos -> ( pos, noise seed pos )) (Point.circle radius ( 0, 0 ))))
         Random.independentSeed
