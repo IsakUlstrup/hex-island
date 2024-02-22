@@ -65,7 +65,7 @@ noise seed position =
     let
         scale : Float
         scale =
-            0.0006
+            0.0005
 
         ( x, y ) =
             Render.pointToPixel position

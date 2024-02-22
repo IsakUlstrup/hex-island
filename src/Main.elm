@@ -105,7 +105,7 @@ randomMap : Seed -> ( Dict Point Tile, Seed )
 randomMap seed =
     let
         radius =
-            10
+            15
 
         ( map, newSeed ) =
             Random.step (Noise.generateCircle radius) seed
@@ -115,9 +115,9 @@ randomMap seed =
             (\( pos, val ) ->
                 let
                     adjustedVal =
-                        val * 3
+                        (val * 3) - (((Point.distance ( 0, 0 ) pos |> toFloat) / radius) * 1.8)
                 in
-                if adjustedVal < 0.1 then
+                if adjustedVal < 0 then
                     Nothing
 
                 else
@@ -149,7 +149,7 @@ init mapJson =
     in
     ( Model
         map
-        (Render.newCamera |> Render.zoomCamera -0.8)
+        (Render.newCamera |> Render.zoomCamera -0.7)
         ( 0, 0 )
         Editor.init
         False
@@ -344,11 +344,11 @@ gooFilter =
     Svg.filter [ Svg.Attributes.id "goo-filter" ]
         [ Svg.feGaussianBlur
             [ Svg.Attributes.in_ "SourceGraphic"
-            , Svg.Attributes.stdDeviation "10"
+            , Svg.Attributes.stdDeviation "100"
             ]
             []
         , Svg.feColorMatrix
-            [ Svg.Attributes.values "1 0 0 0 0      0 1 0 0 0       0 0 1 0 0       0 0 0 20 -10"
+            [ Svg.Attributes.values "1 0 0 0 0      0 1 0 0 0       0 0 1 0 0       0 0 0 200 -100"
             ]
             []
         ]
