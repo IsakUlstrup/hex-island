@@ -106,7 +106,7 @@ randomMap seed =
     let
         radius : number
         radius =
-            20
+            15
 
         ( map, newSeed ) =
             Random.step (Noise.generateCircle radius) seed
@@ -118,14 +118,19 @@ randomMap seed =
     ( map
         |> List.filterMap
             (\( pos, val ) ->
-                if val - distanceFalloff pos < 0 then
+                let
+                    adjustedVal : Float
+                    adjustedVal =
+                        ((val - distanceFalloff pos) + 1) / 2
+                in
+                if adjustedVal < 0 then
                     Nothing
 
                 else
                     Just
                         ( pos
-                        , (val - distanceFalloff pos)
-                            * 6
+                        , adjustedVal
+                            * 3
                             |> clamp 0 3
                             |> round
                         )

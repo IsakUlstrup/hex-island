@@ -33,7 +33,7 @@ randomUnitVector x y =
             in
             Vector2 (cos theta) (sin theta)
         )
-        (Random.int -1000 1000)
+        (Random.int -10000 10000)
 
 
 getDotProduct : Float -> Float -> Int -> Int -> Generator Float
@@ -62,17 +62,9 @@ interp x a b =
     a + smootherstep x * (b - a)
 
 
-noise : Seed -> Point -> Float
-noise seed position =
+noise : Seed -> Float -> Float -> Float
+noise seed x y =
     let
-        scale : Float
-        scale =
-            0.0009
-
-        ( x, y ) =
-            Render.pointToPixel position
-                |> Tuple.mapBoth (\n -> n * scale) (\n -> n * scale)
-
         floorX : Int
         floorX =
             floor x
@@ -109,11 +101,26 @@ noise seed position =
         xb =
             interp (x - toFloat floorX) bottomLeft bottomRight
     in
-    interp (y - toFloat floorY) xt xb + 1 / 2
+    interp (y - toFloat floorY) xt xb
 
 
 generateCircle : Int -> Generator (List ( Point, Float ))
 generateCircle radius =
+    let
+        scale : Float
+        scale =
+            0.12
+    in
     Random.map
-        (\seed -> List.map (\pos -> ( pos, noise seed pos )) (Point.circle radius ( 0, 0 )))
+        (\seed ->
+            Point.circle radius ( 0, 0 )
+                |> List.map
+                    (\pos ->
+                        let
+                            ( x, y ) =
+                                Render.pointToPixel2 pos
+                        in
+                        ( pos, noise seed (x * scale) (y * scale) )
+                    )
+        )
         Random.independentSeed
