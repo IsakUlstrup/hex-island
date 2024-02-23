@@ -1,4 +1,4 @@
-module Engine.Noise exposing (Vector2, generateCircle, noiseList)
+module Engine.Noise exposing (Vector2, generateCircle)
 
 import Engine.Point as Point exposing (Point)
 import Engine.Render as Render
@@ -22,15 +22,16 @@ cantorFunction x y =
 -}
 randomUnitVector : Int -> Int -> Generator Vector2
 randomUnitVector x y =
-    Random.andThen
+    Random.map
         (\r ->
             let
+                theta : Float
                 theta =
                     cantorFunction x y
                         + r
                         |> toFloat
             in
-            Random.constant (Vector2 (cos theta) (sin theta))
+            Vector2 (cos theta) (sin theta)
         )
         (Random.int -1000 1000)
 
@@ -38,14 +39,15 @@ randomUnitVector x y =
 getDotProduct : Float -> Float -> Int -> Int -> Generator Float
 getDotProduct x y vert_x vert_y =
     let
+        d_vect : Vector2
         d_vect =
             { x = x - toFloat vert_x
             , y = y - toFloat vert_y
             }
     in
-    Random.andThen
+    Random.map
         (\g_vect ->
-            Random.constant (d_vect.x * g_vect.x + d_vect.y * g_vect.y)
+            d_vect.x * g_vect.x + d_vect.y * g_vect.y
         )
         (randomUnitVector vert_x vert_y)
 
@@ -65,7 +67,7 @@ noise seed position =
     let
         scale : Float
         scale =
-            0.0005
+            0.0009
 
         ( x, y ) =
             Render.pointToPixel position
@@ -99,24 +101,19 @@ noise seed position =
             Random.step (getDotProduct x y (floorX + 1) (floorY + 1)) seed
                 |> Tuple.first
 
+        xt : Float
         xt =
             interp (x - toFloat floorX) topLeft topRight
 
+        xb : Float
         xb =
             interp (x - toFloat floorX) bottomLeft bottomRight
     in
     interp (y - toFloat floorY) xt xb + 1 / 2
 
 
-noiseList : List Point -> Generator (List ( Point, Float ))
-noiseList positions =
-    Random.andThen
-        (\seed -> Random.constant (List.map (\pos -> ( pos, noise seed pos )) positions))
-        Random.independentSeed
-
-
 generateCircle : Int -> Generator (List ( Point, Float ))
 generateCircle radius =
-    Random.andThen
-        (\seed -> Random.constant (List.map (\pos -> ( pos, noise seed pos )) (Point.circle radius ( 0, 0 ))))
+    Random.map
+        (\seed -> List.map (\pos -> ( pos, noise seed pos )) (Point.circle radius ( 0, 0 )))
         Random.independentSeed

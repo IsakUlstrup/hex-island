@@ -104,24 +104,31 @@ type alias Model =
 randomMap : Seed -> ( Dict Point Tile, Seed )
 randomMap seed =
     let
+        radius : number
         radius =
-            15
+            20
 
         ( map, newSeed ) =
             Random.step (Noise.generateCircle radius) seed
+
+        distanceFalloff : Point -> Float
+        distanceFalloff position =
+            toFloat (Point.distance ( 0, 0 ) position) / radius
     in
     ( map
         |> List.filterMap
             (\( pos, val ) ->
-                let
-                    adjustedVal =
-                        (val * 3) - (((Point.distance ( 0, 0 ) pos |> toFloat) / radius) * 1.8)
-                in
-                if adjustedVal < 0 then
+                if val - distanceFalloff pos < 0 then
                     Nothing
 
                 else
-                    Just ( pos, round (clamp 0 3 adjustedVal) )
+                    Just
+                        ( pos
+                        , (val - distanceFalloff pos)
+                            * 6
+                            |> clamp 0 3
+                            |> round
+                        )
             )
         |> Dict.fromList
     , newSeed
@@ -131,9 +138,11 @@ randomMap seed =
 init : Maybe String -> ( Model, Cmd Msg )
 init mapJson =
     let
+        initSeed : Seed
         initSeed =
             Random.initialSeed 41113
 
+        parseMap : Maybe (Dict Point Tile)
         parseMap =
             mapJson
                 |> Maybe.andThen
@@ -169,7 +178,6 @@ type Msg
     | ClickedSidebarTool Tool
     | KeyPressed String
     | MouseDownChanged Bool
-    | ToggledViewPathDebug Bool
     | ClickedNewMap
 
 
@@ -248,9 +256,6 @@ update msg model =
 
         MouseDownChanged down ->
             ( { model | mouseDown = down }, Cmd.none )
-
-        ToggledViewPathDebug flag ->
-            ( { model | viewPathDebug = flag }, Cmd.none )
 
         ClickedNewMap ->
             let
@@ -344,11 +349,11 @@ gooFilter =
     Svg.filter [ Svg.Attributes.id "goo-filter" ]
         [ Svg.feGaussianBlur
             [ Svg.Attributes.in_ "SourceGraphic"
-            , Svg.Attributes.stdDeviation "100"
+            , Svg.Attributes.stdDeviation "10"
             ]
             []
         , Svg.feColorMatrix
-            [ Svg.Attributes.values "1 0 0 0 0      0 1 0 0 0       0 0 1 0 0       0 0 0 200 -100"
+            [ Svg.Attributes.values "1 0 0 0 0      0 1 0 0 0       0 0 1 0 0       0 0 0 20 -10"
             ]
             []
         ]
@@ -414,7 +419,7 @@ view model =
                 , Svg.Lazy.lazy2 viewTiles 3 model.tiles
                 , Svg.g []
                     (if model.editor.enabled then
-                        List.map (viewGhostTile (model.hoverTile :: Point.neighbours model.hoverTile)) (Render.square model.camera)
+                        List.map (viewGhostTile (Point.circle model.editor.brushRadius model.hoverTile)) (Render.square model.camera)
 
                      else
                         [ viewPath model.viewPathDebug model.tiles ( 0, 0 ) model.hoverTile ]

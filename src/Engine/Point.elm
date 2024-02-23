@@ -113,6 +113,7 @@ scale i ( x1, y1 ) =
 ring : Point -> Int -> List Point
 ring center radius =
     let
+        getDirection : Int -> number
         getDirection s =
             case s of
                 0 ->
@@ -133,9 +134,11 @@ ring center radius =
                 _ ->
                     3
 
+        start : Int -> Point
         start s =
             add center (scale radius (direction (getDirection s)))
 
+        side : Int -> List Point
         side s =
             List.map (\i -> add (start s) (scale i (direction s))) (List.range 0 radius)
     in
