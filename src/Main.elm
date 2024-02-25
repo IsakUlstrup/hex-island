@@ -130,7 +130,7 @@ randomMap seed =
                     Just
                         ( pos
                         , adjustedVal
-                            * 3
+                            * 7
                             |> clamp 0 3
                             |> round
                         )
