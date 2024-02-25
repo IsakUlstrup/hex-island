@@ -21,16 +21,8 @@ body
 .tiles
     filter: url("#goo-filter")
 
-.ghost-tile
-    fill: white
-    fill-opacity: 0
-    stroke: #999
-    stroke-width: 0
-
-    &.highlight
-        stroke-width: 2
-        stroke: #777
-        fill-opacity: 0.2
+.entity
+    transition: transform 200ms
 
 $tile-0-color: hsl(180, 30%, 87%)
 $tile-1-color: hsl(51, 62%, 87%)

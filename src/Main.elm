@@ -252,15 +252,18 @@ viewTiles level tiles =
 
 viewEntity : Entity -> Svg msg
 viewEntity entity =
-    Svg.g [ Render.hexTransform entity.position ]
-        [ Svg.circle
+    Svg.g
+        []
+        [ Render.viewValidPath (entity.position :: entity.path)
+        , Svg.circle
             [ Svg.Attributes.cx "0"
             , Svg.Attributes.cy "0"
             , Svg.Attributes.r "70"
             , Svg.Attributes.fill "red"
+            , Render.hexTransform entity.position
+            , Svg.Attributes.class "entity"
             ]
             []
-        , Render.viewValidPath (List.map (\p -> Point.subtract p entity.position) (entity.position :: entity.path))
         ]
 
 
