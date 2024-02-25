@@ -118,7 +118,7 @@ generateCircle radius =
                     (\pos ->
                         let
                             ( x, y ) =
-                                Render.pointToPixel2 pos
+                                Render.pointToPixelAbs pos
                         in
                         ( pos, noise seed (x * scale) (y * scale) )
                     )

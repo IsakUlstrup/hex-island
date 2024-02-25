@@ -5,11 +5,8 @@ module Engine.Render exposing
     , moveCameraX
     , moveCameraY
     , newCamera
-    , pointToPixel
-    , pointToPixel2
-    , square
+    , pointToPixelAbs
     , svg
-    , viewDebugPath
     , viewHex
     , viewValidPath
     , zoomCamera
@@ -73,10 +70,10 @@ pointToPixel ( q, r ) =
     )
 
 
-{-| Get the center of a given point in screen coordinates
+{-| Get the center of a given point in screen coordinates. Ignores hex size
 -}
-pointToPixel2 : Point -> ( Float, Float )
-pointToPixel2 ( q, r ) =
+pointToPixelAbs : Point -> ( Float, Float )
+pointToPixelAbs ( q, r ) =
     ( 3 / 2 * toFloat q
     , sqrt 3 / 2 * toFloat q + sqrt 3 * toFloat r
     )
@@ -168,31 +165,6 @@ svg attrs children =
             ++ attrs
         )
         children
-
-
-square : Camera -> List Point
-square { x, y, zoom } =
-    let
-        center : Point
-        center =
-            ( ((2 / 3 * x) / hexSize) / zoom
-            , ((-1 / 3 * x + sqrt 3 / 3 * y) / hexSize) / zoom
-            )
-                |> Point.fromFloat
-
-        radius : Int
-        radius =
-            5 / zoom |> round
-    in
-    (List.range -radius radius
-        |> List.concatMap
-            (\r ->
-                List.range -radius radius
-                    |> List.map (\q -> ( q, r ))
-            )
-    )
-        |> List.filter Point.isValid
-        |> List.map (Point.add center)
 
 
 

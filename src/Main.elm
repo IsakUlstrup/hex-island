@@ -5,11 +5,12 @@ import Browser.Events
 import Dict exposing (Dict)
 import Engine.Codec as Codec
 import Engine.Noise as Noise
-import Engine.Path as Path exposing (Path)
 import Engine.Point as Point exposing (Point)
 import Engine.Render as Render exposing (Camera)
+import Entity exposing (Entity)
 import Html exposing (Html, main_)
 import Html.Attributes
+import Html.Events
 import Json.Decode exposing (Decoder)
 import Json.Encode
 import Ports
@@ -55,6 +56,7 @@ canMove tiles from to =
 
 type alias Model =
     { tiles : Dict Point Tile
+    , entities : List Entity
     , camera : Camera
     , hoverTile : Point
     , mouseDown : Bool
@@ -125,6 +127,7 @@ init mapJson =
     in
     ( Model
         map
+        [ Entity.new ( 0, 0 ) ]
         (Render.newCamera |> Render.zoomCamera -0.7)
         ( 0, 0 )
         False
@@ -139,7 +142,8 @@ init mapJson =
 
 
 type Msg
-    = HoverHex Point
+    = Tick Float
+    | HoverHex Point
     | ClickedHex Point
     | KeyPressed String
     | MouseDownChanged Bool
@@ -149,6 +153,16 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Tick dt ->
+            ( { model
+                | entities =
+                    model.entities
+                        |> List.map (Entity.tickCooldown dt)
+                        |> List.map Entity.move
+              }
+            , Cmd.none
+            )
+
         HoverHex pos ->
             ( { model
                 | hoverTile = pos
@@ -156,8 +170,14 @@ update msg model =
             , Cmd.none
             )
 
-        ClickedHex _ ->
-            ( model, Cmd.none )
+        ClickedHex position ->
+            ( { model
+                | entities =
+                    model.entities
+                        |> List.map (Entity.pathfind (canMove model.tiles) position)
+              }
+            , Cmd.none
+            )
 
         KeyPressed key ->
             case key of
@@ -230,25 +250,18 @@ viewTiles level tiles =
         )
 
 
-viewPath : Bool -> Dict Point Tile -> Point -> Point -> Svg msg
-viewPath debug tiles from to =
-    let
-        path : Path
-        path =
-            Path.pathfind (canMove tiles) from to
-    in
-    if debug then
-        Render.viewDebugPath path
-
-    else
-        Svg.g []
-            (case path.path of
-                Just validPath ->
-                    [ Render.viewValidPath validPath ]
-
-                Nothing ->
-                    []
-            )
+viewEntity : Entity -> Svg msg
+viewEntity entity =
+    Svg.g [ Render.hexTransform entity.position ]
+        [ Svg.circle
+            [ Svg.Attributes.cx "0"
+            , Svg.Attributes.cy "0"
+            , Svg.Attributes.r "70"
+            , Svg.Attributes.fill "red"
+            ]
+            []
+        , Render.viewValidPath (List.map (\p -> Point.subtract p entity.position) (entity.position :: entity.path))
+        ]
 
 
 gooFilter : Svg msg
@@ -271,7 +284,8 @@ view model =
     main_
         [ Html.Attributes.id "app"
         ]
-        [ Render.svg
+        [ Html.button [ Html.Events.onClick ClickedNewMap ] [ Html.text "New map" ]
+        , Render.svg
             [ Svg.Attributes.class "game-svg"
             , Svg.Events.onMouseDown (MouseDownChanged True)
             , Svg.Events.onMouseUp (MouseDownChanged False)
@@ -283,11 +297,8 @@ view model =
                 , Svg.Lazy.lazy2 viewTiles 1 model.tiles
                 , Svg.Lazy.lazy2 viewTiles 2 model.tiles
                 , Svg.Lazy.lazy2 viewTiles 3 model.tiles
-                , Svg.g [] [ viewPath model.viewPathDebug model.tiles ( 0, 0 ) model.hoverTile ]
+                , Svg.g [] (List.map viewEntity model.entities)
                 ]
-
-            -- Center screen indicator
-            -- , Svg.circle [ Svg.Attributes.cx "0", Svg.Attributes.cy "0", Svg.Attributes.r "10" ] []
             ]
         ]
 
@@ -322,7 +333,10 @@ tileEncoder tile =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Browser.Events.onKeyPress keyPressDecoder
+    Sub.batch
+        [ Browser.Events.onAnimationFrameDelta Tick
+        , Browser.Events.onKeyPress keyPressDecoder
+        ]
 
 
 
