@@ -7,7 +7,7 @@ import Engine.Codec as Codec
 import Engine.Noise as Noise
 import Engine.Point as Point exposing (Point)
 import Engine.Render as Render exposing (Camera)
-import Entity exposing (Entity)
+import Entity exposing (Entity, EntityData(..))
 import Html exposing (Html, main_)
 import Html.Attributes
 import Html.Events
@@ -254,17 +254,32 @@ viewEntity : Entity -> Svg msg
 viewEntity entity =
     Svg.g
         []
-        [ Render.viewValidPath (entity.position :: entity.path)
-        , Svg.circle
-            [ Svg.Attributes.cx "0"
-            , Svg.Attributes.cy "0"
-            , Svg.Attributes.r "70"
-            , Svg.Attributes.fill "red"
-            , Render.hexTransform entity.position
-            , Svg.Attributes.class "entity"
-            ]
-            []
-        ]
+        (case entity.data of
+            Human humanData ->
+                [ Render.viewValidPath (entity.position :: humanData.path)
+                , Svg.circle
+                    [ Svg.Attributes.cx "0"
+                    , Svg.Attributes.cy "0"
+                    , Svg.Attributes.r "70"
+                    , Svg.Attributes.fill "red"
+                    , Render.hexTransform entity.position
+                    , Svg.Attributes.class "entity"
+                    ]
+                    []
+                ]
+
+            _ ->
+                [ Svg.circle
+                    [ Svg.Attributes.cx "0"
+                    , Svg.Attributes.cy "0"
+                    , Svg.Attributes.r "70"
+                    , Svg.Attributes.fill "red"
+                    , Render.hexTransform entity.position
+                    , Svg.Attributes.class "entity"
+                    ]
+                    []
+                ]
+        )
 
 
 gooFilter : Svg msg
