@@ -60,7 +60,7 @@ move entity =
                                 (Human
                                     { humanData
                                         | path = ps
-                                        , cooldown = 500
+                                        , cooldown = 200
                                     }
                                 )
                             )
