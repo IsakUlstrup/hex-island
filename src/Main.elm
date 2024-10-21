@@ -29,10 +29,15 @@ type alias Tile =
     Int
 
 
-canMove : Dict Point Tile -> Point -> Point -> Bool
-canMove tiles from to =
-    case ( Dict.get from tiles, Dict.get to tiles ) of
-        ( Just f, Just t ) ->
+canMove : Dict Point Tile -> List Entity -> Point -> Point -> Bool
+canMove tiles entities from to =
+    case
+        ( Dict.get from tiles
+        , Dict.get to tiles
+        , List.member to (entities |> List.map .position |> List.filter (\p -> p /= from))
+        )
+    of
+        ( Just f, Just t, False ) ->
             if t == 0 then
                 False
 
@@ -126,7 +131,12 @@ init mapJson =
     in
     ( Model
         map
-        [ Entity.new ( 0, 0 ) ]
+        [ Entity.new ( 0, 0 )
+        , Entity.new ( -6, 6 )
+        , Entity.new ( -6, 3 )
+        , Entity.new ( 6, -3 )
+        , Entity.new ( 6, 2 )
+        ]
         (Render.newCamera |> Render.zoomCamera -0.7)
         ( 0, 0 )
         False
@@ -157,7 +167,7 @@ update msg model =
                 | entities =
                     model.entities
                         |> List.map (Entity.tickCooldown dt)
-                        |> List.map Entity.move
+                        |> List.map (Entity.move (canMove model.tiles model.entities))
               }
             , Cmd.none
             )
@@ -173,7 +183,7 @@ update msg model =
             ( { model
                 | entities =
                     model.entities
-                        |> List.map (Entity.pathfind (canMove model.tiles) position)
+                        |> List.map (Entity.pathfind (canMove model.tiles model.entities) position)
               }
             , Cmd.none
             )

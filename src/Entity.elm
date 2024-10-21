@@ -21,15 +21,19 @@ tickCooldown dt entity =
     { entity | cooldown = entity.cooldown - round dt |> max 0 }
 
 
-move : Entity -> Entity
-move entity =
+move : (Point -> Point -> Bool) -> Entity -> Entity
+move canMove entity =
     case ( entity.path, entity.cooldown ) of
         ( p :: ps, 0 ) ->
-            { entity
-                | position = p
-                , path = ps
-                , cooldown = 200
-            }
+            if canMove entity.position p then
+                { entity
+                    | position = p
+                    , path = ps
+                    , cooldown = 200
+                }
+
+            else
+                entity
 
         _ ->
             entity
