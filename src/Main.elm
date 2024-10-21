@@ -10,7 +10,6 @@ import Engine.Render as Render exposing (Camera)
 import Entity exposing (Entity)
 import Html exposing (Html, main_)
 import Html.Attributes
-import Html.Events
 import Json.Decode exposing (Decoder)
 import Json.Encode
 import Ports
@@ -287,8 +286,7 @@ view model =
     main_
         [ Html.Attributes.id "app"
         ]
-        [ Html.button [ Html.Events.onClick ClickedNewMap ] [ Html.text "New map" ]
-        , Render.svg
+        [ Render.svg
             [ Svg.Attributes.class "game-svg"
             , Svg.Events.onMouseDown (MouseDownChanged True)
             , Svg.Events.onMouseUp (MouseDownChanged False)
